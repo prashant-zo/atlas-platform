@@ -1,0 +1,56 @@
+# Atlas kind cluster configuration
+# Topology: 1 control plane + 2 workers (simulating multi-zone production)
+# written against this cluster work unchanged on AWS EKS.
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: atlas
+
+networking:
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/16"
+  disableDefaultCNI: false
+
+nodes:
+  # ---------- Control Plane ----------
+  - role: control-plane
+    image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
+    labels:
+      atlas.io/node-role: control-plane
+    extraPortMappings: []
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            "service-account-issuer": "https://kubernetes.default.svc"
+
+  # ---------- Worker 1 — zone-a, hosts ingress ----------
+  - role: worker
+    image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
+    labels:
+      topology.kubernetes.io/zone: zone-a
+      ingress-ready: "true"
+      atlas.io/node-role: worker
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+
+  # ---------- Worker 2 — zone-b ----------
+  - role: worker
+    image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
+    labels:
+      topology.kubernetes.io/zone: zone-b
+      atlas.io/node-role: worker
+
+# ---------- Container runtime patches ----------
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
