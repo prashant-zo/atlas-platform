@@ -1,0 +1,31 @@
+cd ~/projects/atlas
+cat > .gitignore << 'EOF'
+# Local kubeconfigs (we use kind's own)
+kubeconfig
+*.kubeconfig
+
+# Secrets — never commit
+*.pem
+*.key
+.envrc
+.env
+.env.local
+secrets/
+
+# Terraform state
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# k9s temp
+.k9s/
+EOF
