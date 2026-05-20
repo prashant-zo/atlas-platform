@@ -75,7 +75,7 @@ start_registry() {
     -p "127.0.0.1:${REGISTRY_PORT}:5000" \
     -v "${registry_data_dir}:/var/lib/registry" \
     -v "${registry_config}:/etc/docker/registry/config.yml:ro" \
-    registry:2.8.3
+    registry:2.8.3 >/dev/null
 
   success "Registry ready at localhost:${REGISTRY_PORT}"
   echo "          Data: ${registry_data_dir}"
