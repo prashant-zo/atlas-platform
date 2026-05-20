@@ -1,0 +1,37 @@
+version: 0.1
+
+log:
+  level: info
+  formatter: text
+
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+    maxthreads: 100
+  delete:
+    enabled: true
+  redirect:
+    disable: true
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 168h        # 7 days
+      interval: 24h
+      dryrun: false
+    readonly:
+      enabled: false
+
+http:
+  addr: :5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+  debug:
+    addr: :5001
+    prometheus:
+      enabled: false  
+
+health:
+  storagedriver:
+    enabled: true
+    interval: 30s
+    threshold: 3
