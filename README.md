@@ -86,19 +86,26 @@ atlas/
 
 ## Quick Start
 
+## Quick Start
+
 ```bash
-# Verify environment
-./scripts/verify-setup.sh
+# 1. Verify environment is ready
+make verify
 
-# Bring up cluster
-make up
+# 2. Bring cluster online + install platform
+make up && make platform
 
-# Bootstrap ArgoCD + platform
-make platform
+# 3. Check cluster status
+make status
 
-# Tear down
+# Tear down when done
 make down
+
+# See all available operations
+make help
 ```
+
+Requires: Docker (Colima recommended), kind, kubectl, helm. Run `make verify` to check.
 
 ---
 
