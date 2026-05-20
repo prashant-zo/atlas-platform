@@ -61,11 +61,42 @@ verify_metrics() {
   success "Metrics API working"
 }
 
+install_argocd() {
+  section "ArgoCD"
+
+  local namespace="argocd"
+  local release="argocd"
+  local chart_version="7.6.12"
+  local values_file="${REPO_ROOT}/platform/argocd/values.yaml"
+
+  [[ -f "${values_file}" ]] || fail "ArgoCD values not found: ${values_file}"
+
+  if ! helm repo list 2>/dev/null | grep -q '^argo\s'; then
+    log "Adding argo Helm repo..."
+    helm repo add argo https://argoproj.github.io/argo-helm >/dev/null
+  fi
+  helm repo update argo >/dev/null
+
+  kubectl get namespace "${namespace}" >/dev/null 2>&1 \
+    || kubectl create namespace "${namespace}" >/dev/null
+
+  log "Installing ArgoCD chart version ${chart_version}..."
+  helm upgrade --install "${release}" argo/argo-cd \
+    --namespace "${namespace}" \
+    --version "${chart_version}" \
+    --values "${values_file}" \
+    --wait \
+    --timeout 5m
+
+  success "ArgoCD installed"
+}
+
 main() {
   log "═══ Atlas platform-install ═══"
   require_cluster
   install_metrics_server
   verify_metrics
+  install_argocd
   echo
   success "Platform install complete"
 }
