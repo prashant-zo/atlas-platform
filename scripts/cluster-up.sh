@@ -44,26 +44,41 @@ preflight() {
 start_registry() {
   log "Ensuring local registry is running..."
 
-  # If the registry container already exists in any state, restart or reuse it
+  local registry_data_dir="${HOME}/.atlas/registry-data"
+  local registry_config="${REPO_ROOT}/infrastructure/registry/config.yml"
+
+  # Ensure the persistent data directory exists
+  mkdir -p "${registry_data_dir}"
+
+  # Verify config file is present (helps catch missing checkout)
+  [[ -f "${registry_config}" ]] || fail "Registry config not found at ${registry_config}"
+
+  # If running already → done
   if [[ "$(docker inspect -f '{{.State.Running}}' "${REGISTRY_NAME}" 2>/dev/null || echo false)" == "true" ]]; then
     success "Registry '${REGISTRY_NAME}' already running"
     return
   fi
 
+  # Exists but stopped → restart
   if docker inspect "${REGISTRY_NAME}" >/dev/null 2>&1; then
     log "Registry container exists but stopped — restarting"
     docker start "${REGISTRY_NAME}" >/dev/null
-  else
-    log "Creating registry container on port ${REGISTRY_PORT}"
-    docker run -d \
-      --restart=always \
-      -p "127.0.0.1:${REGISTRY_PORT}:5000" \
-      --network bridge \
-      --name "${REGISTRY_NAME}" \
-      registry:2 >/dev/null
+    success "Registry restarted"
+    return
   fi
 
+  # Fresh create — pinned version, mounted config, persistent data
+  log "Creating registry container on port ${REGISTRY_PORT}"
+  docker run -d \
+    --restart=always \
+    --name "${REGISTRY_NAME}" \
+    -p "127.0.0.1:${REGISTRY_PORT}:5000" \
+    -v "${registry_data_dir}:/var/lib/registry" \
+    -v "${registry_config}:/etc/docker/registry/config.yml:ro" \
+    registry:2.8.3
+
   success "Registry ready at localhost:${REGISTRY_PORT}"
+  echo "          Data: ${registry_data_dir}"
 }
 
 # Kind cluster (idempotent)
