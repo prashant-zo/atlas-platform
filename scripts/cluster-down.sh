@@ -66,6 +66,22 @@ confirm() {
   fi
 }
 
+stop_portforwards() {
+  log "Stopping ArgoCD port-forward if running..."
+
+  local pid_file="${HOME}/.atlas/argocd-portforward.pid"
+  if [[ -f "${pid_file}" ]]; then
+    local pid
+    pid=$(cat "${pid_file}")
+    if kill -0 "${pid}" 2>/dev/null; then
+      kill "${pid}" 2>/dev/null || true
+    fi
+    rm -f "${pid_file}"
+  fi
+
+  success "Port-forwards cleaned"
+}
+
 # Delete kind cluster (idempotent)
 delete_cluster() {
   log "Checking for kind cluster '${CLUSTER_NAME}'..."
@@ -136,6 +152,7 @@ main() {
   log "═══ Atlas cluster-down ═══"
   preflight
   confirm
+  stop_portforwards
   delete_cluster
   delete_registry
   cleanup_network
