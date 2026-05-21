@@ -13,6 +13,7 @@ KUBECTL_CTX    := kind-$(CLUSTER_NAME)
 
 # Phony declarations — none of these are filenames
 .PHONY: help verify up down restart platform status logs context \
+	argocd argocd-stop argocd-status \
         registry-list registry-size registry-gc \
         clean nuke
 
@@ -32,25 +33,25 @@ help: ## Show this help message
 	@echo "  make down                tear cluster down (asks for confirmation)"
 
 # Environment & cluster lifecycle
-verify:
+verify: ## Verify local environment is ready (tools, daemon, ports)
 	@./scripts/verify-setup.sh
 
-up:
+up:     ## Bring up the kind cluster and local registry
 	@./scripts/cluster-up.sh
 
-down: 
+down:   ## Tear down cluster and registry (asks for confirmation)
 	@./scripts/cluster-down.sh
 
-restart: 
+restart: ## Tear down and bring back up (force, keeps registry cache) 
 	@./scripts/cluster-down.sh --force --keep-registry
 	@./scripts/cluster-up.sh
 
 
-platform:
+platform: ## Install platform components onto the cluster
 	@./scripts/platform-install.sh
 
 # Observability into current state
-status: 
+status: ## Show cluster, nodes, and key pods at a glance
 	@echo "─── Cluster context ───"
 	@kubectl config current-context 2>/dev/null || echo "(no cluster)"
 	@echo ""
@@ -64,27 +65,36 @@ status:
 	@docker ps --filter "name=$(REGISTRY_NAME)" \
 		--format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null || true
 
-logs: 
+logs:   ## Tail key control-plane logs (Ctrl+C to stop)
 	@kubectl logs -n kube-system -l component=kube-apiserver --tail=50 -f
 
-context:
+context: ## Switch kubectl context to the Atlas cluster
 	@kubectl config use-context $(KUBECTL_CTX)
 
 # Registry helpers
-registry-list: 
+registry-list: ## List all images stored in the local registry 
 	@./scripts/registry-inspect.sh list
 
-registry-size:
+registry-size: ## Show registry disk usage
 	@./scripts/registry-inspect.sh size
 
-registry-gc:
+registry-gc: ## Run garbage collection on the local registry
 	@./scripts/registry-inspect.sh gc
 
 # Cleanup
-clean:
+clean:  ## Remove cluster but keep registry data
 	@./scripts/cluster-down.sh --force --keep-registry
 
-nuke:
+argocd: ## Bring up ArgoCD port-forward and CLI login
+	@./scripts/argocd-bootstrap.sh
+
+argocd-stop: ## Stop the ArgoCD port-forward
+	@./scripts/argocd-bootstrap.sh --stop
+
+argocd-status: ## Show ArgoCD port-forward and CLI status
+	@./scripts/argocd-bootstrap.sh --status
+
+nuke:   ## Remove EVERYTHING including registry data (DESTRUCTIVE)
 	@./scripts/cluster-down.sh --force
 	@rm -rf $$HOME/.atlas/registry-data
 	@echo "✓ All Atlas state removed"
