@@ -27,40 +27,6 @@ require_cluster() {
     || fail "Wrong context '$ctx' — expected kind-atlas"
 }
 
-install_metrics_server() {
-  section "metrics-server"
-  log "Applying manifest..."
-  kubectl apply -f "${REPO_ROOT}/platform/metrics-server/metrics-server.yaml"
-
-  log "Waiting for metrics-server to become ready (up to 90s)..."
-  kubectl wait --for=condition=Available \
-    --timeout=90s \
-    -n kube-system \
-    deployment/metrics-server
-
-  success "metrics-server is ready"
-}
-
-verify_metrics() {
-  section "Verifying metrics API"
-  log "Waiting for first scrape (up to 30s)..."
-
-  local attempt=0
-  while ! kubectl top nodes >/dev/null 2>&1; do
-    attempt=$((attempt + 1))
-    if [[ $attempt -gt 10 ]]; then
-      fail "Metrics API not returning data after 30s"
-    fi
-    sleep 3
-  done
-
-  echo
-  kubectl top nodes
-  echo
-  kubectl top pods -A | head -10
-  success "Metrics API working"
-}
-
 install_argocd() {
   section "ArgoCD"
 
@@ -94,11 +60,11 @@ install_argocd() {
 main() {
   log "═══ Atlas platform-install ═══"
   require_cluster
-  install_metrics_server
-  verify_metrics
   install_argocd
   echo
   success "Platform install complete"
+  echo
+  echo "  Next:  make argocd      # bring up ArgoCD UI and CLI session"
 }
 
 main "$@"

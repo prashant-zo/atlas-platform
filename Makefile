@@ -14,6 +14,7 @@ KUBECTL_CTX    := kind-$(CLUSTER_NAME)
 # Phony declarations — none of these are filenames
 .PHONY: help verify up down restart platform status logs context \
 	argocd argocd-stop argocd-status \
+	bootstrap-gitops \
         registry-list registry-size registry-gc \
         clean nuke
 
@@ -93,6 +94,17 @@ argocd-stop: ## Stop the ArgoCD port-forward
 
 argocd-status: ## Show ArgoCD port-forward and CLI status
 	@./scripts/argocd-bootstrap.sh --status
+
+bootstrap-gitops: ## Apply the root App-of-Apps (one-time setup)
+	@echo "Applying root App-of-Apps..."
+	@kubectl apply -f gitops/bootstrap/root-app.yaml
+	@echo ""
+	@echo "Root Application created. ArgoCD will now discover and reconcile"
+	@echo "every child Application in gitops/apps/ within 3 minutes."
+	@echo ""
+	@echo "Watch progress with:"
+	@echo "  argocd app list"
+	@echo "  argocd app get root-app-of-apps"
 
 nuke:   ## Remove EVERYTHING including registry data (DESTRUCTIVE)
 	@./scripts/cluster-down.sh --force
