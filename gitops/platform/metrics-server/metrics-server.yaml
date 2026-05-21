@@ -22,7 +22,6 @@ kind: ServiceAccount
 metadata:
   labels:
     k8s-app: metrics-server
-    atlas.io/gitops-test: "true"
   name: metrics-server
   namespace: kube-system
 ---
@@ -136,6 +135,7 @@ kind: Deployment
 metadata:
   labels:
     k8s-app: metrics-server
+    atlas.io/gitops-test: "true"
   name: metrics-server
   namespace: kube-system
 spec:
