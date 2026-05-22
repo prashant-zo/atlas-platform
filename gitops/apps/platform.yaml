@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform
+  namespace: argocd
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/category: platform
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+
+  generators:
+    - git:
+        repoURL: https://github.com/prashant-zo/atlas-platform.git
+        revision: main
+        directories:
+          - path: gitops/platform/*
+
+  template:
+    metadata:
+      name: 'platform-{{ .path.basename }}'
+      finalizers:
+        - resource-finalizer.argocd.argoproj.io
+      labels:
+        app.atlas.io/managed-by: argocd
+        app.atlas.io/category: platform
+        app.atlas.io/component: '{{ .path.basename }}'
+    spec:
+      project: default
+
+      source:
+        repoURL: https://github.com/prashant-zo/atlas-platform.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kube-system
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
+          - ServerSideApply=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
