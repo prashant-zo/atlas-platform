@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: three-tier
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/workload: three-tier-app
