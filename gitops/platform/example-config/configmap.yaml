@@ -1,0 +1,8 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ConfigMap
+metadata:
+  name: atlas-example
+  namespace: kube-system
+data:
+  message: "If you can see this, the ApplicationSet auto-discovery works."
+  created-by: "Atlas platform ApplicationSet"
