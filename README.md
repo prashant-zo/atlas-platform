@@ -141,6 +141,20 @@ Requires: Docker (Colima recommended), kind, kubectl, helm. Run `make verify` to
 
 ---
 
+## Operational Notes
+
+### Removing an ArgoCD Application managed by an ApplicationSet
+
+When removing a component managed by the platform ApplicationSet, follow this delete order to avoid finalizer deadlocks:
+
+1. Set the Application's sync policy to manual (or uncheck auto-prune) via the ArgoCD UI
+2. Manually sync once with prune enabled to clean up all managed resources
+3. Only after the Application shows 0 resources, remove its source directory from Git
+
+If you delete the directory first, the Application can get stuck in `Terminating` state because its finalizer cannot load the source to determine what to prune. See [INC-001](./docs/incidents/001-applicationset-finalizer-deadlock.md) and the corresponding [runbook](./docs/runbooks/argocd-application-stuck-terminating.md) for full details.
+
+---
+
 ## License
 
 MIT
