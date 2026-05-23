@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: three-tier-prod
+  namespace: argocd
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/category: workload
+spec:
+  generators:
+    - list:
+        elements:
+          - env: prod
+
+  template:
+    metadata:
+      name: 'three-tier-{{ .env }}'
+      labels:
+        app.atlas.io/managed-by: argocd
+        app.atlas.io/category: workload
+        app.atlas.io/workload: three-tier-app
+        app.atlas.io/env: '{{ .env }}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/prashant-zo/atlas-platform.git
+        targetRevision: main
+        path: 'gitops/workloads/three-tier-app/overlays/{{ .env }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'three-tier-{{ .env }}'
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
