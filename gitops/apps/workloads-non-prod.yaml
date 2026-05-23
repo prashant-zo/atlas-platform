@@ -7,6 +7,10 @@ metadata:
     app.atlas.io/managed-by: argocd
     app.atlas.io/category: workload
 spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+
   generators:
     - list:
         elements:
