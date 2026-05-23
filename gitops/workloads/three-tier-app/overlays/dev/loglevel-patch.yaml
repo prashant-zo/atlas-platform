@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  LOG_LEVEL: "debug"
+  NODE_ENV: "development"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: frontend-config
+data:
+  APP_ENV: "development"
