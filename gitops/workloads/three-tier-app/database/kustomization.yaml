@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - cluster.yaml
+  - minio.yaml
 
 labels:
   - includeSelectors: false
