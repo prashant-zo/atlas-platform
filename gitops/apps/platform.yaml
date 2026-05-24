@@ -37,7 +37,6 @@ spec:
 
       destination:
         server: https://kubernetes.default.svc
-        namespace: kube-system
 
       syncPolicy:
         automated:
