@@ -1,5 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 namespace: cnpg-system
 
 helmCharts:
@@ -11,19 +12,19 @@ helmCharts:
     includeCRDs: true
     valuesInline:
       replicaCount: 1
-
       resources:
         requests:
           cpu: 50m
           memory: 128Mi
         limits:
           memory: 256Mi
-
       monitoring:
         podMonitorEnabled: false
-
       config:
         clusterName: atlas
+
+resources:
+  - namespace.yaml
 
 labels:
   - includeSelectors: false
