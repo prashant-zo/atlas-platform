@@ -26,6 +26,6 @@ helmCharts:
 
 labels:
   - includeSelectors: false
-  pairs:
-    app.atlas.io/managed-by: argocd
-    app.atlas.io/component: cnpg-operator
+    pairs:
+      app.atlas.io/managed-by: argocd
+      app.atlas.io/component: cnpg-operator
