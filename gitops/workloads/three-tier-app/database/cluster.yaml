@@ -1,0 +1,51 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/workload: three-tier-app
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.6
+
+  bootstrap:
+    initdb:
+      database: appdb
+      owner: appuser
+      postInitSQL:
+        - CREATE EXTENSION IF NOT EXISTS pg_stat_statements
+
+  storage:
+    storageClass: standard
+    size: 2Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "128MB"
+      work_mem: "4MB"
+      maintenance_work_mem: "32MB"
+
+      log_min_duration_statement: "1000"
+      log_connections: "off"
+      log_disconnections: "off"
+      log_lock_waits: "on"
+
+      wal_level: replica
+      max_wal_senders: "10"
+      max_replication_slots: "10"
+
+  affinity:
+    podAntiAffinityType: preferred
+    topologyKey: topology.kubernetes.io/zone
+
+  monitoring:
+    enablePodMonitor: false

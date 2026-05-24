@@ -28,7 +28,7 @@ spec:
             - sh
             - -c
             - |
-              until nc -z postgres-svc 5432; do
+              until nc -z pg-rw 5432; do
                 echo "Waiting for postgres..."
                 sleep 3
               done
@@ -47,11 +47,16 @@ spec:
                 name: backend-config
 
           env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: pg-app
+                  key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_PASSWORD
+                  name: pg-app
+                  key: password
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:

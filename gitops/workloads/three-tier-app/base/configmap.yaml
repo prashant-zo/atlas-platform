@@ -6,7 +6,8 @@ data:
   NODE_ENV: "production"
   PORT: "3000"
   LOG_LEVEL: "info"
-  DB_HOST: "postgres-svc"
+  DB_HOST: "pg-rw"
+  DB_HOST_RO: "pg-ro"
   DB_PORT: "5432"
 ---
 apiVersion: v1

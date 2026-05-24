@@ -10,7 +10,6 @@ resources:
   - namespace.yaml
   - secrets.yaml
   - configmap.yaml
-  - postgres.yaml
   - backend.yaml
   - frontend.yaml
 
