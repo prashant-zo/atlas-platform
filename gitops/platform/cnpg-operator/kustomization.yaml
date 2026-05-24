@@ -24,6 +24,8 @@ helmCharts:
       config:
         clusterName: atlas
 
-commonLabels:
-  app.atlas.io/managed-by: argocd
-  app.atlas.io/component: cnpg-operator
+labels:
+  - includeSelectors: false
+  pairs:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/component: cnpg-operator
