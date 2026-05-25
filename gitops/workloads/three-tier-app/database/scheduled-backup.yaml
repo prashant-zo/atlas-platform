@@ -12,3 +12,4 @@ spec:
   cluster:
     name: pg
   method: barmanObjectStore
+  backupOwnerReference: self
