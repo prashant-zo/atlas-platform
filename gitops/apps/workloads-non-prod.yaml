@@ -53,4 +53,11 @@ spec:
         - group: apps
           kind: StatefulSet
           jsonPointers:
-            - /spec/volumeClaimTemplates            
+            - /spec/volumeClaimTemplates
+        - group: postgresql.cnpg.io
+          kind: Cluster
+          jsonPointers:
+            - /status
+            - /spec/bootstrap/initdb/encoding
+            - /spec/bootstrap/initdb/localeCType
+            - /spec/bootstrap/initdb/localeCollate
