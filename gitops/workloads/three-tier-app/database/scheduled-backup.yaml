@@ -1,0 +1,14 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: pg-daily
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/workload: three-tier-app
+    app.atlas.io/component: database
+spec:
+  schedule: "0 0 2 * * *"
+  immediate: true
+  cluster:
+    name: pg
+  method: barmanObjectStore

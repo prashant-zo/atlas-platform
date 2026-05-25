@@ -38,6 +38,7 @@ spec:
           - CreateNamespace=true
           - ServerSideApply=true
           - ApplyOutOfSyncOnly=true
+          - RespectIgnoreDifferences=true
         retry:
           limit: 5
           backoff:
@@ -57,3 +58,7 @@ spec:
             - /spec/bootstrap/initdb/encoding
             - /spec/bootstrap/initdb/localeCType
             - /spec/bootstrap/initdb/localeCollate
+        - group: postgresql.cnpg.io
+          kind: ScheduledBackup
+          jsonPointers:
+            - /status

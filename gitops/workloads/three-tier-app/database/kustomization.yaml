@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - cluster.yaml
   - minio.yaml
+  - scheduled-backup.yaml
 
 labels:
   - includeSelectors: false
