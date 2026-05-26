@@ -84,16 +84,6 @@ grafana:
     datasources:
       enabled: true
 
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          url: http://kps-prometheus.monitoring.svc:9090
-          access: proxy
-          isDefault: true
-
 nodeExporter:
   enabled: true
 
