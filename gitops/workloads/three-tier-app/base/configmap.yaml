@@ -6,7 +6,7 @@ data:
   NODE_ENV: "production"
   PORT: "3000"
   LOG_LEVEL: "info"
-  DB_HOST: "pg-rw"
+  DB_HOST: "pg-pooler-rw"
   DB_HOST_RO: "pg-ro"
   DB_PORT: "5432"
 ---

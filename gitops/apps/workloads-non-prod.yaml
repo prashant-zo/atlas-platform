@@ -66,3 +66,7 @@ spec:
           kind: ScheduledBackup
           jsonPointers:
             - /status
+        - group: postgresql.cnpg.io
+          kind: Pooler
+          jsonPointers:
+            - /status

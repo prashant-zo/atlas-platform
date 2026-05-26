@@ -1,0 +1,35 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: pg-pooler-rw
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/workload: three-tier-app
+    app.atlas.io/component: pooler
+spec:
+  cluster:
+    name: pg
+  type: rw
+  instances: 2
+  pgbouncer:
+    poolMode: transaction
+    parameters:
+      max_client_conn: "1000"
+      default_pool_size: "25"
+      server_lifetime: "3600"
+      server_idle_timeout: "600"
+      client_idle_timeout: "0"
+      query_timeout: "0"
+      log_connections: "0"
+      log_disconnections: "0"
+      log_pooler_errors: "1"
+  template:
+    spec:
+      containers:
+        - name: pgbouncer
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128 Mi

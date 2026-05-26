@@ -5,6 +5,7 @@ resources:
   - cluster.yaml
   - minio.yaml
   - scheduled-backup.yaml
+  - pooler.yaml
 
 labels:
   - includeSelectors: false
