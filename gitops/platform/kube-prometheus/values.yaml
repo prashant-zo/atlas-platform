@@ -84,8 +84,8 @@ grafana:
     datasources:
       enabled: true
 
-  dataresources:
-    dataresources.yaml:
+  datasources:
+    datasources.yaml:
       apiVersion:
         datasources:
           - name: prometheus
