@@ -6,6 +6,9 @@ prometheusOperator:
     limits:
       memory: 256Mi
 
+admissionWebhooks:
+    enabled: false
+
 prometheus:
   prometheusSpec:
     resources:
