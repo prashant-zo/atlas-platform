@@ -12,6 +12,9 @@ helmCharts:
     includeCRDs: true
     valuesFile: values.yaml
 
+resources:
+  - grafana-datasource.yaml 
+
 labels:
   - includeSelectors: false
     pairs:
