@@ -15,7 +15,6 @@ spec:
     - list:
         elements:
           - env: dev
-          - env: staging
 
   template:
     metadata:

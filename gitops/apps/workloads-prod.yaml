@@ -13,8 +13,7 @@ spec:
 
   generators:
     - list:
-        elements:
-          - env: prod
+        elements: []
 
   template:
     metadata:
