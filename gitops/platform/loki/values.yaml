@@ -6,20 +6,20 @@ loki:
     storageClassName: standard
     accessModes:
       - ReadWriteOnce
-    size: 10Gi
+    size: 5Gi
 
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 50m
+      memory: 128Mi
     limits:
-      memory: 512Mi
+      memory: 256Mi
 
   config:
     limits_config:
-      retention_period: 168h
+      retention_period: 72h
       reject_old_samples: true
-      reject_old_samples_max_age: 168h
+      reject_old_samples_max_age: 72h
 
     compactor:
       retention_enabled: true

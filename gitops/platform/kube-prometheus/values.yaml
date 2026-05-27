@@ -13,12 +13,12 @@ prometheus:
   prometheusSpec:
     resources:
       requests:
-        cpu: 100m
-        memory: 512Mi
+        cpu: 50m
+        memory: 256Mi
       limits:
-        memory: 1Gi
+        memory: 512Mi
 
-    retention: 7d
+    retention: 3d
     retentionSize: 8GiB
 
     storageSpec:
@@ -28,7 +28,7 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 10Gi
+              storage: 5Gi
 
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
@@ -64,10 +64,10 @@ alertmanager:
 grafana:
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 25m
+      memory: 96Mi
     limits:
-      memory: 256Mi
+      memory: 192Mi
 
   adminUser: admin
   adminPassword: atlas-admin
