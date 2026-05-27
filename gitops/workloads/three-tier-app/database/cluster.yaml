@@ -48,7 +48,7 @@ spec:
     topologyKey: topology.kubernetes.io/zone
 
   monitoring:
-    enablePodMonitor: false
+    enablePodMonitor: true
 
   backup:
     barmanObjectStore:
