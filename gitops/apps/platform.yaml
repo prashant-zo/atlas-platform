@@ -38,6 +38,12 @@ spec:
       destination:
         server: https://kubernetes.default.svc
 
+      ignoreDifferences:
+        - group: apps
+          kind: StatefulSet
+          jsonPointers:
+            - /spec/volumeClaimTemplates
+
       syncPolicy:
         automated:
           prune: true
