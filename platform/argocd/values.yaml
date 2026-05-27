@@ -18,6 +18,11 @@ server:
     limits:
       memory: 256Mi
 
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+
 repoServer:
   replicas: 1
   resources:
@@ -27,6 +32,11 @@ repoServer:
     limits:
       memory: 256Mi
 
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+
 controller:
   replicas: 1
   resources:
@@ -35,6 +45,10 @@ controller:
       memory: 256Mi
     limits:
       memory: 512Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
 
 redis:
   enabled: true
@@ -59,7 +73,11 @@ applicationSet:
       cpu: 50m
       memory: 64Mi
     limits:
-      memory: 128Mi
+      memory: 128Mi 
+  metrics:                
+    enabled: true
+    serviceMonitor:
+      enabled: false
 
 configs:
   params:
@@ -68,3 +86,30 @@ configs:
     timeout.reconciliation: 180s
     timeout.hard.reconciliation: 0s
     kustomize.buildOptions: "--enable-helm"
+
+extraObjects:
+  - apiVersion: monitoring.coreos.com/v1
+    kind: ServiceMonitor
+    metadata:
+      name: argocd-metrics
+      namespace: argocd
+      labels:
+        app.atlas.io/managed-by: argocd
+        app.atlas.io/component: argocd-monitoring
+    spec:
+      selector:
+        matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+              - argocd-server-metrics
+              - argocd-repo-server
+              - argocd-application-controller
+              - argocd-applicationset-controller
+      namespaceSelector:
+        matchNames:
+          - argocd
+      endpoints:
+        - port: metrics
+          interval: 30s
+          path: /metrics
