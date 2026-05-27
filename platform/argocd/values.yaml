@@ -96,20 +96,25 @@ extraObjects:
       labels:
         app.atlas.io/managed-by: argocd
         app.atlas.io/component: argocd-monitoring
+        release: kps
     spec:
       selector:
         matchExpressions:
-          - key: app.kubernetes.io/name
+          - key: app.kubernetes.io/component
             operator: In
             values:
-              - argocd-server-metrics
-              - argocd-repo-server
-              - argocd-application-controller
-              - argocd-applicationset-controller
+              - server
+              - repo-server
+              - application-controller
+              - applicationset-controller
+          - key: app.kubernetes.io/part-of
+            operator: In
+            values:
+              - argocd
       namespaceSelector:
         matchNames:
           - argocd
       endpoints:
-        - port: metrics
+        - port: http-metrics 
           interval: 30s
           path: /metrics
