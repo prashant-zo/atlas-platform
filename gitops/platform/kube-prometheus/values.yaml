@@ -8,6 +8,8 @@ prometheusOperator:
 
   admissionWebhooks:
     enabled: false
+  tls:
+    enabled: false
 
 prometheus:
   prometheusSpec:
