@@ -15,6 +15,7 @@ helmCharts:
 resources:
   - namespace.yaml
   - rules/three-tier-slo-rules.yaml
+  - rules/three-tier-slo-alerts.yaml
 
 labels:
   - includeSelectors: false

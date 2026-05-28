@@ -1,0 +1,146 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: three-tier-slo-alerts
+  namespace: monitoring
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/component: slo-alerts
+    release: kps
+spec:
+  groups:
+    - name: three-tier-availability-burn
+      rules:
+        - alert: ThreeTierAvailabilityBurnFast
+          expr: |
+            (
+              (1 - avg_over_time(sli:three_tier_db_available:ratio[1h])) > 0.072
+            )
+            and
+            (
+              (1 - avg_over_time(sli:three_tier_db_available:ratio[5m])) > 0.072
+            )
+          for: 2m
+          labels:
+            severity: critical
+            slo: availability
+            service: three-tier-dev
+          annotations:
+            summary: "Three-tier DB availability budget burning FAST"
+            description: >
+              Database availability SLI is failing fast enough to exhaust
+              the 28-day error budget in ~2 days. Both 1h and 5m windows
+              exceed 14.4x burn rate. Check Postgres primary and PgBouncer.
+            runbook: "docs/runbooks/postgres-failover.md"
+
+        - alert: ThreeTierAvailabilityBurnSlow
+          expr: |
+            (
+              (1 - avg_over_time(sli:three_tier_db_available:ratio[6h])) > 0.015
+            )
+            and
+            (
+              (1 - avg_over_time(sli:three_tier_db_available:ratio[30m])) > 0.015
+            )
+          for: 15m
+          labels:
+            severity: warning
+            slo: availability
+            service: three-tier-dev
+          annotations:
+            summary: "Three-tier DB availability budget burning slowly"
+            description: >
+              Database availability SLI is degraded over a sustained
+              period (6h and 30m windows exceed 3x burn rate). Not an
+              emergency, but investigate before budget depletes.
+            runbook: "docs/runbooks/postgres-failover.md"
+
+    - name: three-tier-latency-burn
+      rules:
+        - alert: ThreeTierLatencyBurnFast
+          expr: |
+            (
+              (1 - avg_over_time(sli:three_tier_db_latency:ratio[1h])) > 0.144
+            )
+            and
+            (
+              (1 - avg_over_time(sli:three_tier_db_latency:ratio[5m])) > 0.144
+            )
+          for: 2m
+          labels:
+            severity: critical
+            slo: latency
+            service: three-tier-dev
+          annotations:
+            summary: "Three-tier DB latency budget burning FAST"
+            description: >
+              PgBouncer pool wait time is exceeding 50ms frequently
+              enough to burn the latency budget in ~2 days. Check pool
+              saturation and Postgres load.
+            runbook: "docs/runbooks/postgres-failover.md"
+
+        - alert: ThreeTierLatencyBurnSlow
+          expr: |
+            (
+              (1 - avg_over_time(sli:three_tier_db_latency:ratio[6h])) > 0.030
+            )
+            and
+            (
+              (1 - avg_over_time(sli:three_tier_db_latency:ratio[30m])) > 0.030
+            )
+          for: 15m
+          labels:
+            severity: warning
+            slo: latency
+            service: three-tier-dev
+          annotations:
+            summary: "Three-tier DB latency budget burning slowly"
+            description: >
+              PgBouncer pool wait time degraded over a sustained period.
+              Investigate pool sizing or query patterns.
+            runbook: "docs/runbooks/postgres-failover.md"
+
+    - name: three-tier-backup-burn
+      rules:
+        - alert: ThreeTierBackupFreshnessBurnFast
+          expr: |
+            (
+              (1 - avg_over_time(sli:three_tier_backup_fresh:ratio[1h])) > 0.0144
+            )
+            and
+            (
+              (1 - avg_over_time(sli:three_tier_backup_fresh:ratio[5m])) > 0.0144
+            )
+          for: 2m
+          labels:
+            severity: critical
+            slo: backup_freshness
+            service: three-tier-dev
+          annotations:
+            summary: "Three-tier backup freshness budget burning FAST"
+            description: >
+              Last successful backup is aging past 26 hours. Backup chain
+              may be broken. This threatens disaster recovery capability.
+              Check ScheduledBackup and MinIO WAL archive.
+            runbook: "docs/runbooks/postgres-pitr-recovery.md"
+
+        - alert: ThreeTierBackupFreshnessBurnSlow
+          expr: |
+            (
+              (1 - avg_over_time(sli:three_tier_backup_fresh:ratio[6h])) > 0.003
+            )
+            and
+            (
+              (1 - avg_over_time(sli:three_tier_backup_fresh:ratio[30m])) > 0.003
+            )
+          for: 15m
+          labels:
+            severity: warning
+            slo: backup_freshness
+            service: three-tier-dev
+          annotations:
+            summary: "Three-tier backup freshness degrading"
+            description: >
+              Backup freshness SLI degraded over a sustained period.
+              Verify the daily ScheduledBackup is completing.
+            runbook: "docs/runbooks/postgres-pitr-recovery.md"
