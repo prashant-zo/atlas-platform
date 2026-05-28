@@ -6,61 +6,90 @@ Accepted — 2026-05-28
 
 ## Context
 
-[Write 2-3 sentences: Atlas needs centralized log aggregation to
-complement Prometheus metrics. During incident triage, engineers need
-to correlate a metric anomaly with what the application actually logged
-at that moment. State the key constraint: this runs on an 8GB
-development machine, and the production target is cost-conscious EKS.
-Mention that metrics are the primary observability signal; logs are the
-secondary correlation signal.]
+Atlas needs centralized log aggregation to complement Prometheus metrics.
+During incident triage, an engineer who sees a metric anomaly needs to
+correlate it with what the application actually logged at that moment.
+Metrics are Atlas's primary observability signal; logs are the secondary
+signal used for correlation and root-cause analysis.
+
+Two hard constraints shape this decision:
+- Local development runs on an 8GB MacBook Air. Memory is scarce.
+- The production target is cost-conscious EKS. We want the same stack
+  locally and in cloud, with low storage and compute cost at scale.
 
 ## Decision
 
-[State plainly: we chose Grafana Loki with Promtail as the log
-forwarder, deployed via the loki-stack Helm chart in single-binary
-mode. One or two sentences.]
+We use Grafana Loki with Promtail as the log forwarder, deployed via the
+loki-stack Helm chart in single-binary mode. Promtail runs as a DaemonSet,
+tailing container logs on every node and shipping them to Loki. Grafana
+queries Loki via LogQL, unifying metrics and logs in one interface.
 
 ## Alternatives Considered
 
 ### Loki + Promtail (chosen)
-[2-4 sentences on why. Pull from the "case for Loki" above but in your
-own words: index-free architecture, low resource cost critical on 8GB,
-shared label model with Prometheus, unified in Grafana, object-storage
-backing on EKS.]
+
+Loki indexes only labels (namespace, pod, container) — not log content.
+Log lines are compressed and stored as chunks, cheaply. This index-free
+architecture keeps resource use low: Loki ran in 128-256Mi on our cluster,
+which made it viable on 8GB hardware where Elasticsearch could not fit.
+
+Operationally it is simple: one Loki binary plus a Promtail DaemonSet,
+versus ELK's multi-component stack. Loki reuses Prometheus's label model,
+so LogQL (`{namespace="three-tier-dev"} |= "ERROR"`) matches the mental
+model we already use for PromQL. Grafana ties metrics and logs together —
+click from a latency spike to the logs at that timestamp. On EKS, Loki
+backs onto S3 object storage, keeping cost low at scale.
 
 ### ELK / EFK Stack (Elasticsearch + Logstash/Fluentd + Kibana)
-[Be FAIR here — this is the test of a good ADR. 2-4 sentences on what
-ELK does better: full-text search across all logs, richer analytics
-and aggregations on structured fields, mature Kibana ecosystem. Then
-state why it lost FOR ATLAS specifically: resource cost incompatible
-with 8GB local, operational complexity of a multi-component JVM stack,
-and the fact that logs are our secondary signal not primary.]
+
+ELK is genuinely more powerful for log-centric workflows. Elasticsearch's
+inverted index makes full-text search across all logs instant — searching
+a stack-trace fragment everywhere is fast without needing good label
+filters. Kibana offers deeper log visualization and analytics than
+Grafana, and Elasticsearch aggregations on structured log fields are far
+richer than LogQL. For a logging-centric product (SIEM, audit, security
+analytics), ELK would be the correct choice.
+
+It lost for Atlas specifically because: Elasticsearch's per-token indexing
+demands gigabytes of RAM — incompatible with 8GB local development; the
+multi-component JVM stack (Elasticsearch cluster + Logstash + Kibana +
+Beats) is operationally heavy; and Atlas's logs are a secondary
+correlation signal, not the primary product, so ELK's power doesn't
+justify its cost here.
 
 ### Cloud-managed (CloudWatch Logs, GCP Cloud Logging)
-[1-2 sentences: viable on EKS, but creates cloud lock-in and doesn't
-work in local kind development. We want the same stack locally and in
-cloud. Rejected for portability.]
+
+Viable on EKS, but creates cloud lock-in and does not work in local kind
+development. We want an identical stack locally and in cloud for
+reproducibility. Rejected for portability.
 
 ## Consequences
 
 ### Positive
-[Bullet a few: low resource footprint, ran in 128-256Mi; same query
-model as Prometheus; Grafana unifies metrics+logs; cheap S3-backed
-storage on EKS; simple operational model.]
+
+- Low resource footprint (128-256Mi) — the deciding factor on 8GB hardware.
+- Same query/label model as Prometheus; one paradigm for metrics and logs.
+- Grafana unifies metrics and logs for fast incident correlation.
+- Cheap S3-backed chunk storage on EKS; low cost at scale.
+- Simple operational model — one binary plus a DaemonSet.
 
 ### Negative / Trade-offs accepted
-[Be honest: full-text search is weaker than Elasticsearch; complex
-cross-cutting log searches without good label filters are slower; if
-Atlas ever needs log-based analytics or SIEM-style capabilities, we'd
-need to reconsider. Document these as known limitations, not hidden.]
+
+- Full-text search is weaker than Elasticsearch. Cross-cutting searches
+  without good label filters scan chunks and are slower.
+- No rich log-field analytics or aggregations like Kibana provides.
+- If Atlas ever needs SIEM-style or log-analytics capabilities, this
+  choice would need to be revisited.
 
 ### Neutral / Future
-[1-2 sentences: if log volume or analytical needs grow significantly,
-revisit. The Promtail→Loki→Grafana pipeline can coexist with or migrate
-to other backends since Promtail can ship to multiple sinks.]
+
+- If log volume or analytical needs grow significantly, revisit. Promtail
+  can ship to multiple sinks, so migration or coexistence is feasible
+  without re-instrumenting the workloads.
 
 ## References
 
-- Task 4.2 implementation: gitops/platform/loki/
-- Loki docs: https://grafana.com/docs/loki/
-- Related: ADR-002 (GitOps engine), the broader observability stack
+- Implementation: gitops/platform/loki/ (Task 4.2)
+- Loki documentation: https://grafana.com/docs/loki/
+- Related: ADR-002 (GitOps engine); the broader observability stack
+  (kube-prometheus-stack, Task 4.1)
