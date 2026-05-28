@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/component: slo-dashboard
+data:
+  slo-dashboard.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "panels": [
+        {
+          "title": "SLO 1: Database Availability (target 99.5%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 1,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "sli:three_tier_db_available:ratio",
+              "legendFormat": "Availability SLI",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "SLO 2: Database Latency (target 99%, <50ms pool wait)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 1,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "sli:three_tier_db_latency:ratio",
+              "legendFormat": "Latency SLI",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "SLO 3: Backup Freshness (target 99.9%, <26h old)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "min": 0, "max": 1,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "sli:three_tier_backup_fresh:ratio",
+              "legendFormat": "Backup Freshness SLI",
+              "refId": "A"
+            }
+          ]
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": ["atlas", "slo"],
+      "time": { "from": "now-6h", "to": "now" },
+      "title": "Atlas — SLO Burn-Down",
+      "uid": "atlas-slo-burndown"
+    }

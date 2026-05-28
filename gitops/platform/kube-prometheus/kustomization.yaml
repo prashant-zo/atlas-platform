@@ -16,6 +16,8 @@ resources:
   - namespace.yaml
   - rules/three-tier-slo-rules.yaml
   - rules/three-tier-slo-alerts.yaml
+  - dashboards/cnpg-dashboard-configmap.yaml
+  - dashboards/slo-dashboard-configmap.yaml
 
 labels:
   - includeSelectors: false
