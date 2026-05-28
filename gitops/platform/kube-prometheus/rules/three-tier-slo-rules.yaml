@@ -1,0 +1,51 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: three-tier-slo-rules
+  namespace: monitoring
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/component: slo-rules
+    release: kps
+spec:
+  groups:
+    - name: three-tier-availability
+      interval: 30s
+      rules:
+        - record: sli:three_tier_db_available:ratio
+          expr: |
+            (
+              max(cnpg_collector_up{namespace="three-tier-dev"}) == bool 1
+            )
+            and
+            (
+              max(cnpg_pgbouncer_pools_sv_active{namespace="three-tier-dev"}) > bool 0
+            )
+          labels:
+            slo: availability
+            service: three-tier-dev
+
+    - name: three-tier-latency
+      interval: 30s
+      rules:
+        - record: sli:three_tier_db_latency:ratio
+          expr: |
+            (
+              max(rate(cnpg_pgbouncer_pools_maxwait_us{namespace="three-tier-dev"}[5m])) < bool 50000
+            )
+          labels:
+            slo: latency
+            service: three-tier-dev
+
+    - name: three-tier-backup-freshness
+      interval: 30s
+      rules:
+        - record: sli:three_tier_backup_fresh:ratio
+          expr: |
+            (
+              time() -
+              max(cnpg_collector_last_available_backup_timestamp{namespace="three-tier-dev"})
+            ) < bool 93600
+          labels:
+            slo: backup_freshness
+            service: three-tier-dev
