@@ -69,3 +69,7 @@ spec:
           kind: Pooler
           jsonPointers:
             - /status
+        - group: argoproj.io
+          kind: Rollout
+          jsonPointers:
+            - /spec/replicas
