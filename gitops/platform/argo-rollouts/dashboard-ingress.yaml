@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argo-rollouts-dashboard
+  namespace: argo-rollouts
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/component: argo-rollouts
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: rollouts.atlas.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argo-rollouts-dashboard
+                port:
+                  number: 3100
