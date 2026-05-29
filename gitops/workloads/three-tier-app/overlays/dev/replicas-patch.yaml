@@ -1,9 +1,3 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Rollout
-metadata:
-  name: backend
-spec:
-  replicas: 4
 ---
 apiVersion: apps/v1
 kind: Deployment

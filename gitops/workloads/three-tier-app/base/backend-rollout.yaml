@@ -11,6 +11,8 @@ spec:
   selector:
     matchLabels:
       app: backend
+      app.atlas.io/managed-by: argocd 
+      app.atlas.io/workload: three-tier-app 
 
   strategy:
     canary:
@@ -34,6 +36,8 @@ spec:
       labels:
         app: backend
         tier: api
+        app.atlas.io/managed-by: argocd 
+        app.atlas.io/workload: three-tier-app 
     spec:
       initContainers:
         - name: wait-for-postgres

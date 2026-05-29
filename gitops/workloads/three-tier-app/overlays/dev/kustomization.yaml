@@ -19,6 +19,20 @@ images:
     newTag: "15-alpine"
 
 patches:
-  - path: replicas-patch.yaml
   - path: resources-patch.yaml
+  - path: replicas-patch.yaml
   - path: loglevel-patch.yaml
+
+  - path: backend-resources-patch.yaml
+    target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Rollout
+      name: backend
+
+  - path: backend-replicas-patch.yaml
+    target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Rollout
+      name: backend
