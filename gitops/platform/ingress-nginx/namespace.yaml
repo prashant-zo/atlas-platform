@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    app.atlas.io/managed-by: argocd
+    app.atlas.io/component: ingress-nginx
+    pod-security.kubernetes.io/enforce: privileged

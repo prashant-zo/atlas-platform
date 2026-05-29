@@ -1,0 +1,37 @@
+controller:
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 25m
+      memory: 96Mi
+    limits:
+      memory: 256Mi
+
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30080
+      https: 30443
+
+  admissionWebhooks:
+    enabled: false
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+
+  ingressClassResource:
+    name: nginx
+    enabled: true
+    default: true
+  ingressClass: nginx
+
+  watchNamespace: ""
+
+  config:
+    use-forwarded-headers: "true"
+    proxy-real-ip-cidr: "0.0.0.0/0"
+    proxy-read-timeout: "60"
+    proxy-send-timeout: "60"
