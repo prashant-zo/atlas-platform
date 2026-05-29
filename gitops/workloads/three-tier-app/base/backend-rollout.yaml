@@ -16,6 +16,14 @@ spec:
 
   strategy:
     canary:
+
+      stableService: backend-svc
+      canaryService: backend-svc-canary
+
+      trafficRouting:
+        nginx:
+          stableIngress: backend
+
       steps:
         - setWeight: 25
         - pause: {}                

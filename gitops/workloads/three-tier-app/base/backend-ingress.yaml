@@ -1,0 +1,22 @@
+# During a canary, Rollouts clones this Ingress as "backend-canary"
+# and sets nginx.ingress.kubernetes.io/canary-weight annotations on it.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: backend.atlas.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-svc
+                port:
+                  number: 3000

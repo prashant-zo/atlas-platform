@@ -12,6 +12,7 @@ resources:
   - configmap.yaml
   - backend-rollout.yaml  
   - backend-service.yaml
+  - backend-ingress.yaml
   - frontend.yaml
 
 images:
