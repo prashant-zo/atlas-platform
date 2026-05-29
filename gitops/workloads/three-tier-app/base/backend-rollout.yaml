@@ -58,6 +58,7 @@ spec:
           ports:
             - name: http
               containerPort: 5678
+              protocol: TCP
           envFrom:
             - configMapRef:
                 name: backend-config
