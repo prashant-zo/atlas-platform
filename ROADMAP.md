@@ -116,7 +116,7 @@ Argo Rollouts with NGINX traffic routing, automated metric-gated promotion, and 
 | 5.1  | Argo Rollouts controller install                        | `feat(delivery): install argo rollouts controller`          | ✅     |
 | 5.2  | NGINX ingress controller install                        | `feat(ingress): install nginx ingress controller`           | ✅     |
 | 5.3  | Convert backend Deployment to Rollout                   | `feat(delivery): convert backend to rollout`                | ✅     |
-| 5.4  | Wire NGINX trafficRouting on Rollout                    | `feat(delivery): wire nginx canary traffic split`           | ⏳     |
+| 5.4  | Wire NGINX trafficRouting on Rollout                    | `feat(delivery): wire nginx canary traffic split`           | ✅     |
 | 5.5  | AnalysisTemplate using Prometheus metrics               | `feat(delivery): add prometheus analysis template`          | ⏳     |
 | 5.6  | Automated rollback on SLI breach                        | `feat(delivery): wire automated canary rollback`            | ⏳     |
 | 5.7  | k6 load testing for canary traffic                      | `feat(load-tests): add k6 baseline load tests`              | ⏳     |
