@@ -60,7 +60,7 @@ spec:
               done
       containers:
         - name: backend
-          image: hashicorp/http-echo:1.0.0
+          image: localhost:5001/atlas-backend:v1
           args:
             - "-text={\"status\":\"healthy\",\"service\":\"backend-api\",\"version\":\"v2\"}"
           ports:
@@ -71,6 +71,15 @@ spec:
             - configMapRef:
                 name: backend-config
           env:
+            - name: VERSION
+              value: "v1"
+            - name: PORT
+              value: "5678"
+            - name: FAIL_RATE
+              value: "0"
+            - name: LATENCY_MS
+              value: "0"
+
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
