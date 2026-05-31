@@ -13,6 +13,7 @@ resources:
   - backend-rollout.yaml  
   - backend-service.yaml
   - backend-ingress.yaml
+  - backend-servicemonitor.yaml
   - frontend.yaml
 
 images:
