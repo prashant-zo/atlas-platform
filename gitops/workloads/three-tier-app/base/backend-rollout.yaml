@@ -23,7 +23,12 @@ spec:
           stableIngress: backend
       steps:
         - setWeight: 25
-        - pause: {}
+        - analysis:
+            templates:
+              - templateName: backend-canary-analysis
+            args:
+              - name: canary-version
+                value: "v2"
         - setWeight: 50
         - pause: { duration: 30s }
         - setWeight: 75
