@@ -11,27 +11,23 @@ spec:
   selector:
     matchLabels:
       app: backend
-      app.atlas.io/managed-by: argocd 
-      app.atlas.io/workload: three-tier-app 
+      app.atlas.io/managed-by: argocd
+      app.atlas.io/workload: three-tier-app
 
   strategy:
     canary:
-
       stableService: backend-svc
       canaryService: backend-svc-canary
-
       trafficRouting:
         nginx:
           stableIngress: backend
-
       steps:
         - setWeight: 25
-        - pause: {}                
+        - pause: {}
         - setWeight: 50
         - pause: { duration: 30s }
         - setWeight: 75
         - pause: { duration: 30s }
-
       canaryMetadata:
         labels:
           rollout-pod-template-hash-version: canary
@@ -44,8 +40,8 @@ spec:
       labels:
         app: backend
         tier: api
-        app.atlas.io/managed-by: argocd 
-        app.atlas.io/workload: three-tier-app 
+        app.atlas.io/managed-by: argocd
+        app.atlas.io/workload: three-tier-app
     spec:
       initContainers:
         - name: wait-for-postgres
@@ -61,8 +57,6 @@ spec:
       containers:
         - name: backend
           image: localhost:5001/atlas-backend:v1
-          args:
-            - "-text={\"status\":\"healthy\",\"service\":\"backend-api\",\"version\":\"v2\"}"
           ports:
             - name: http
               containerPort: 5678
@@ -79,7 +73,6 @@ spec:
               value: "0"
             - name: LATENCY_MS
               value: "0"
-
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
