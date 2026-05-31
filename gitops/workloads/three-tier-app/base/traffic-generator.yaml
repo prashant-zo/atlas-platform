@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: traffic-generator
+  labels:
+    app: traffic-generator
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 30
+      template:
+        metadata:
+          labels:
+            app: traffic-generator
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: curl
+              image: curlimages/curl:8.10.1
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 50m
+                  memory: 32Mi
+              command:
+                - sh
+                - -c
+                - |
+                  # Send a burst of 60 requests over 60 seconds
+                  # (1 per second roughly). Job runs every minute, so this
+                  # gives ~constant traffic at ~1 RPS.
+                  set -eu
+                  TARGET="http://backend-svc:3000/"
+                  end=$(($(date +%s) + 55))
+                  while [ "$(date +%s)" -lt "$end" ]; do
+                    curl -sS -o /dev/null -m 5 "$TARGET" || true
+                    sleep 1
+                  done
+                  echo "burst complete"
