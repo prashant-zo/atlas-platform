@@ -12,7 +12,8 @@ spec:
       initialDelay: 60s
       interval: 30s
       count: 5
-      failureLimit: 2
+      failureLimit: 1
+      consecutiveErrorLimit: 2
       successCondition: result[0] >= 0.95
       provider:
         prometheus:
@@ -36,7 +37,8 @@ spec:
       initialDelay: 60s
       interval: 30s
       count: 5
-      failureLimit: 2
+      failureLimit: 1
+      consecutiveErrorLimit: 2
       successCondition: result[0] <= 500
       provider:
         prometheus:

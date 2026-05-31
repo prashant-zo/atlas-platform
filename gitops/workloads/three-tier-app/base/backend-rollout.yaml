@@ -16,6 +16,7 @@ spec:
 
   strategy:
     canary:
+      scaleDownDelaySeconds: 300
       stableService: backend-svc
       canaryService: backend-svc-canary
       trafficRouting:
