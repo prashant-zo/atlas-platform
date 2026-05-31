@@ -7,43 +7,46 @@ spec:
     - name: canary-version
 
   metrics:
-    # ----- Gate 1: success rate -----
+    # ----- Gate 1: success rate (>= 95%) -----
     - name: success-rate
+      initialDelay: 60s
       interval: 30s
       count: 5
       failureLimit: 2
+      successCondition: result[0] >= 0.95
       provider:
         prometheus:
           address: http://kps-kube-prometheus-stack-prometheus.monitoring.svc:9090
           query: |
             (
               sum(rate(http_requests_total{
-                job="backend-svc.*",
+                job=~"backend-svc.*",
                 status=~"2..",
                 version="{{args.canary-version}}"
               }[2m]))
               /
               sum(rate(http_requests_total{
-                job="backend",
+                job=~"backend-svc.*",
                 version="{{args.canary-version}}"
               }[2m]))
             ) OR on() vector(0)
-      successCondition: result[0] >= 0.95
 
-    # ----- Gate 2: p95 latency -----
+    # ----- Gate 2: p95 latency (<= 500ms) -----
     - name: p95-latency-ms
+      initialDelay: 60s
       interval: 30s
       count: 5
       failureLimit: 2
+      successCondition: result[0] <= 500
       provider:
         prometheus:
           address: http://kps-kube-prometheus-stack-prometheus.monitoring.svc:9090
           query: |
-            histogram_quantile(0.95,
-              sum(rate(http_request_duration_seconds_bucket{
-                job="backend-svc.*",
-                version="{{args.canary-version}}"
-              }[2m])) by (le)
-            ) * 1000
-      successCondition: result[0] <= 500
-
+            (
+              histogram_quantile(0.95,
+                sum(rate(http_request_duration_seconds_bucket{
+                  job=~"backend-svc.*",
+                  version="{{args.canary-version}}"
+                }[2m])) by (le)
+              ) * 1000
+            ) OR on() vector(0)
