@@ -27,9 +27,6 @@ spec:
           command:
             - k6
             - run
-            - --no-summary
-            - --summary-export
-            - /tmp/summary.json
             - /scripts/backend-canary-load.js
           volumeMounts:
             - name: script
