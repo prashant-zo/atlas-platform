@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-backend-canary-load
+  namespace: three-tier-dev
+  labels:
+    app: k6-load-test
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: k6-load-test
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: grafana/k6:0.55.0
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          command:
+            - k6
+            - run
+            - --no-summary
+            - --summary-export
+            - /tmp/summary.json
+            - /scripts/backend-canary-load.js
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+      volumes:
+        - name: script
+          configMap:
+            name: k6-backend-canary
+            items:
+              - key: backend-canary-load.js
+                path: backend-canary-load.js
