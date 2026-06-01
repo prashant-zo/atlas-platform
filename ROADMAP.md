@@ -117,14 +117,14 @@ Argo Rollouts with NGINX traffic routing, automated metric-gated promotion, and 
 | 5.2  | NGINX ingress controller install                        | `feat(ingress): install nginx ingress controller`           | ✅     |
 | 5.3  | Convert backend Deployment to Rollout                   | `feat(delivery): convert backend to rollout`                | ✅     |
 | 5.4  | Wire NGINX trafficRouting on Rollout                    | `feat(delivery): wire nginx canary traffic split`           | ✅     |
-| 5.5  | AnalysisTemplate using Prometheus metrics               | `feat(delivery): add prometheus analysis template`          | ⏳     |
-| 5.6  | Automated rollback on SLI breach                        | `feat(delivery): wire automated canary rollback`            | ⏳     |
-| 5.7  | k6 load testing for canary traffic                      | `feat(load-tests): add k6 baseline load tests`              | ⏳     |
-| 5.8  | ADR-005: Rollouts vs Flagger vs native Deployment       | `docs(adr): ADR-005 progressive delivery choice`            | ⏳     |
-| 5.9  | INC-004 GameDay: bad canary auto-rollback               | `docs(incident): INC-004 canary auto-rollback`              | ⏳     |
-| 5.10 | Week 5 runbook + ROADMAP wrap                           | `docs(runbook): canary rollback procedures`                 | ⏳     |
+| 5.5  | AnalysisTemplate using Prometheus metrics               | `feat(delivery): add prometheus analysis template`          | ✅     |
+| 5.6  | Automated rollback on SLI breach                        | `feat(delivery): wire automated canary rollback`            | ✅     |
+| 5.7  | k6 load testing for canary traffic                      | `feat(load-tests): add k6 baseline load tests`              | ✅     |
+| 5.8  | ADR-005: Rollouts vs Flagger vs native Deployment       | `docs(adr): ADR-005 progressive delivery choice`            | ✅     |
+| 5.9  | INC-004 GameDay: bad canary auto-rollback               | `docs(incident): INC-004 canary auto-rollback`              | ✅     |
+| 5.10 | Week 5 runbook + ROADMAP wrap                           | `docs(runbook): canary rollback procedures`                 | ✅     |
 
-**Week 5 deliverable:** Push a bad image → canary deploys to small traffic slice → Prometheus analysis detects elevated error rate or SLI breach → automated rollback to stable version, no human action needed. NGINX splits traffic at HTTP level by exact weight, not pod ratio.
+**Week 5 outcome:** Atlas now ships releases through a metric-gated canary. A v2 release auto-promoted successfully (5.5) — success rate at 100%, p95 latency at 4.75ms, no human in the loop. A deliberately broken v3 release (FAIL_RATE=0.5) was rejected within 90 seconds (5.9) — the success-rate gate caught it at 50.4%, triggered auto-rollback, stable ReplicaSet stayed at 4/4 Ready throughout. Under sustained k6 load (5.7), the backend held 100 RPS for 5 minutes with zero errors and 6.37ms end-to-end p95 latency. NGINX traffic splitting works by exact HTTP weight, independent of pod ratio.
 
 ---
 
