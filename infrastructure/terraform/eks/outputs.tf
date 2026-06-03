@@ -46,5 +46,5 @@ output "node_role_arn" {
 
 output "kubeconfig_command" {
   description = "Run this to update your local kubeconfig"
-  value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${var.cluster_name}"
+  value       = "aws eks update-kubeconfig --region ${var.region} --name ${var.cluster_name}"
 }

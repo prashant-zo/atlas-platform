@@ -54,7 +54,7 @@ resource "aws_eks_node_group" "main" {
   }
 
   capacity_type  = "SPOT"
-  instance_types = [var.node_instance_type, "t3a.large", "t3.large"]
+  instance_types = [var.node_instance_type, "t3a.large"]
 
   disk_size = var.node_disk_size
 
