@@ -62,7 +62,7 @@ spec:
               done
       containers:
         - name: backend
-          image: localhost:5001/atlas-backend:v1
+          image: kennethreitz/httpbin:latest
           ports:
             - name: http
               containerPort: 5678
