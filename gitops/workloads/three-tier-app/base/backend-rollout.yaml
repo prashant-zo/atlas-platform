@@ -62,7 +62,10 @@ spec:
               done
       containers:
         - name: backend
-          image: kennethreitz/httpbin:latest
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-listen=:5678"
+            - "-text=atlas-backend-eks-validation"
           ports:
             - name: http
               containerPort: 5678
