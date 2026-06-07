@@ -11,8 +11,8 @@ labels:
       app.atlas.io/env: dev
 
 images:
-  - name: hashicorp/http-echo
-    newTag: "1.0.0"
+  - name: ghcr.io/prashant-zo/atlas-backend
+    newTag: "v2"
   - name: nginx
     newTag: "1.27-alpine"
   - name: postgres
