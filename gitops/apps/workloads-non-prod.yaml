@@ -73,3 +73,8 @@ spec:
           kind: Rollout
           jsonPointers:
             - /spec/replicas
+        - group: ""
+          kind: Service
+          jqPathExpressions:
+            - '.spec.selector."rollouts-pod-template-hash"'
+            - '.metadata.annotations."argo-rollouts.argoproj.io/managed-by-rollouts"'
