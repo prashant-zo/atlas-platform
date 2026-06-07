@@ -15,10 +15,10 @@ prometheus:
   prometheusSpec:
     resources:
       requests:
-        cpu: 50m
-        memory: 256Mi
+        cpu: 100m
+        memory: 1Gi
       limits:
-        memory: 512Mi
+        memory: 2Gi
 
     retention: 3d
     retentionSize: 8GiB
