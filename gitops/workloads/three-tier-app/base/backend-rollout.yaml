@@ -78,7 +78,7 @@ spec:
             - name: FAIL_RATE
               value: "0"
             - name: LATENCY_MS
-              value: "0"
+              value: "5"
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
