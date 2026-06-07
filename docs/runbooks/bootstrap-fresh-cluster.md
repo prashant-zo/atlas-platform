@@ -235,30 +235,44 @@ kubectl describe scheduledbackup pg-daily -n three-tier-dev | grep -A2 "Last Bac
 
 ---
 
-## Phase 7: Teardown
+## Phase 7: Teardown (Updated 2026-06-08)
 
 When done for the day:
 
 ```bash
-cd "/Users/prashant/Documents/The Helios Project/DevOps/Project/atlas/infrastructure/terraform"
+# Step 1: Pre-destroy cleanup (releases ALBs and EBS volumes cleanly)
+cd "/Users/prashant/Documents/The Helios Project/DevOps/Project/atlas"
+./scripts/pre-destroy-cleanup.sh
+
+# Step 2: Terraform destroy
+cd infrastructure/terraform
 ./destroy.sh
 # Type "destroy atlas" when prompted
 ```
 
-**Expected duration:** ~15 minutes.
+**Expected duration:** ~3 min pre-destroy + ~15 min Terraform destroy = ~18 min total.
 
 **Validate destruction:**
 
 ```bash
+# Cluster gone
 aws eks describe-cluster --name atlas-eks-dev --region ap-south-1 --profile atlas 2>&1 | head -3
 # Expected: ResourceNotFoundException
 
-# Confirm no lingering EBS volumes (CSI sometimes leaves them)
+# No orphaned EBS volumes (the previously-common gotcha)
 aws ec2 describe-volumes --region ap-south-1 --profile atlas \
-  --filters "Name=tag:kubernetes.io/cluster/atlas-eks-dev,Values=owned" \
+  --filters "Name=status,Values=available" \
+            "Name=tag:kubernetes.io/cluster/atlas-eks-dev,Values=owned" \
   --query 'Volumes[*].VolumeId' --output text
 # Expected: empty
+
+# No orphaned ALBs
+aws elbv2 describe-load-balancers --region ap-south-1 --profile atlas \
+  --query 'LoadBalancers[*].LoadBalancerName' --output text
+# Expected: empty
 ```
+
+**Why the pre-destroy script exists:** EBS volumes created by PVCs and ALBs created by Ingresses are managed by in-cluster controllers, NOT by Terraform. When Terraform destroys the cluster, those controllers die before cleanup. The pre-destroy script triggers cleanup while the controllers are still alive, then waits for them to release the AWS resources. This avoids the ~$0.10/GB-month-per-orphan cost accrual that compounds across destroy cycles.
 
 ---
 
