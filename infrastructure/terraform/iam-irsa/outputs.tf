@@ -27,3 +27,8 @@ output "service_account_annotation_ebs_csi_driver" {
   description = "Helm chart annotation pointing the CSI driver ServiceAccount at its IRSA role"
   value       = "eks.amazonaws.com/role-arn: ${aws_iam_role.ebs_csi_driver.arn}"
 }
+
+output "default_storage_class_name" {
+  description = "Name of the default StorageClass for the cluster"
+  value       = kubernetes_storage_class_v1.gp3.metadata[0].name
+}
