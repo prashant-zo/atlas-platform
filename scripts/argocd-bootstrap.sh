@@ -93,9 +93,8 @@ start_portforward() {
   local svc_port="80"
   log "Starting port-forward (localhost:${LOCAL_PORT} → svc/argocd-server:${svc_port})..."
 
-  # Use --address 127.0.0.1 explicitly to avoid IPv6 weirdness on some Macs.
+  # Bind to both IPv4 and IPv6 (kubectl default).
   kubectl port-forward svc/argocd-server -n "${NAMESPACE}" \
-    --address 127.0.0.1 \
     "${LOCAL_PORT}:${svc_port}" \
     >"${LOG_FILE}" 2>&1 &
   echo $! > "${PID_FILE}"
@@ -105,6 +104,7 @@ start_portforward() {
   # counts as success for -sSf.
   log "Waiting for forward to become reachable..."
   local attempt=0
+  sleep 2
   while ! curl -sS --max-time 2 -o /dev/null -w '%{http_code}' \
             "http://localhost:${LOCAL_PORT}" 2>/dev/null | grep -qE '^(200|301|302|303|307|308)$'; do
 
@@ -119,11 +119,11 @@ start_portforward() {
       fail "Port-forward process exited unexpectedly"
     fi
 
-    if [[ $attempt -gt 20 ]]; then
+    if [[ $attempt -gt 30 ]]; then
       stop_portforward
       echo "Last 20 lines of port-forward log:"
       tail -20 "${LOG_FILE}" 2>/dev/null || true
-      fail "Port-forward did not become reachable after 20s"
+      fail "Port-forward did not become reachable after 30s"
     fi
     sleep 1
   done

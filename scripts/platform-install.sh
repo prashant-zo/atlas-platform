@@ -110,10 +110,25 @@ install_eks_prerequisites() {
 
   # Install/upgrade AWS Load Balancer Controller via Helm
   # Annotations on the SA must point to the IRSA role we created in Terraform
+  # Read VPC ID and region from VPC module's Terraform state
+  # The ALB controller needs these explicitly — IMDS auto-discovery is
+  # blocked by default in EKS 1.30+ pod networking.
+  local vpc_dir="${REPO_ROOT}/infrastructure/terraform/vpc"
+  local vpc_id region
+  vpc_id=$(cd "$vpc_dir" && terraform output -raw vpc_id 2>/dev/null || echo "")
+  region=$(cd "$vpc_dir" && terraform output -raw region 2>/dev/null || echo "ap-south-1")
+
+  if [[ -z "$vpc_id" ]]; then
+    fail "Could not read vpc_id from Terraform. Did vpc module apply succeed?"
+  fi
+
+  log "VPC ID: ${vpc_id}, Region: ${region}"
   log "Installing AWS Load Balancer Controller (cluster=${cluster_name})..."
   helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
     --namespace kube-system \
     --set "clusterName=${cluster_name}" \
+    --set "vpcId=${vpc_id}" \
+    --set "region=${region}" \
     --set serviceAccount.create=true \
     --set serviceAccount.name=aws-load-balancer-controller \
     --set "serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${role_arn}" \
@@ -121,6 +136,28 @@ install_eks_prerequisites() {
     --timeout 5m
 
   success "AWS Load Balancer Controller installed"
+}
+
+# Prometheus CRDs — required by ArgoCD chart's ServiceMonitor resources
+
+install_prometheus_crds() {
+  section "Prometheus CRDs (required by ArgoCD ServiceMonitors)"
+
+  local crd_version="v0.79.2"   # Matches kube-prometheus-stack 65.x
+  local crd_base="https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/${crd_version}/example/prometheus-operator-crd"
+
+  local crds=(
+    "monitoring.coreos.com_servicemonitors.yaml"
+    "monitoring.coreos.com_podmonitors.yaml"
+    "monitoring.coreos.com_prometheusrules.yaml"
+  )
+
+  for crd in "${crds[@]}"; do
+    log "Applying ${crd}..."
+    kubectl apply --server-side -f "${crd_base}/${crd}" >/dev/null
+  done
+
+  success "Prometheus CRDs installed"
 }
 
 # ArgoCD install — same on both kind and EKS
@@ -196,6 +233,8 @@ main() {
   if [[ "$cluster_type" == "eks" ]]; then
     install_eks_prerequisites
   fi
+
+  install_prometheus_crds
 
   install_argocd
   print_summary "$cluster_type"
