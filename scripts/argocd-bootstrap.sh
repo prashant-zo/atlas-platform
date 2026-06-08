@@ -154,7 +154,9 @@ cli_login() {
     --username admin \
     --password "${password}" \
     --insecure \
-    --grpc-web
+    --plaintext \
+    --port-forward \
+    --port-forward-namespace "${NAMESPACE}"
   local login_rc=$?
   set -o pipefail
 
