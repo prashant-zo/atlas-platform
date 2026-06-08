@@ -33,14 +33,16 @@ spec:
                 - sh
                 - -c
                 - |
-                  # Send a burst of 60 requests over 60 seconds
-                  # (1 per second roughly). Job runs every minute, so this
-                  # gives ~constant traffic at ~1 RPS.
+                  # Send a burst of 60 requests over 60 seconds (1 RPS roughly).
+                  # Job runs every minute, so this gives ~constant traffic at ~1 RPS.
+                  #
+                  # We hit the ingress-nginx controller with the backend ingress's
                   set -eu
-                  TARGET="http://backend-svc:3000/"
+                  TARGET="http://ingress-nginx-controller.ingress-nginx.svc:80/"
+                  HOST_HEADER="backend.atlas.local"
                   end=$(($(date +%s) + 55))
                   while [ "$(date +%s)" -lt "$end" ]; do
-                    curl -sS -o /dev/null -m 5 "$TARGET" || true
+                    curl -sS -o /dev/null -m 5 -H "Host: ${HOST_HEADER}" "$TARGET" || true
                     sleep 1
                   done
                   echo "burst complete"
