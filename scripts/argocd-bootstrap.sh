@@ -150,7 +150,7 @@ cli_login() {
 
   log "Logging in via argocd CLI..."
   set +o pipefail
-  yes | argocd login "localhost:${LOCAL_PORT}" \
+  yes | argocd login "127.0.0.1:${LOCAL_PORT}" \
     --username admin \
     --password "${password}" \
     --insecure \
