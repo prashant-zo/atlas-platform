@@ -12,7 +12,7 @@ labels:
 
 images:
   - name: ghcr.io/prashant-zo/atlas-backend
-    newTag: "v2"
+    newTag: "v3"
   - name: nginx
     newTag: "1.27-alpine"
   - name: postgres
