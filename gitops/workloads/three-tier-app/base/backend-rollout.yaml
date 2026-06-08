@@ -29,7 +29,7 @@ spec:
               - templateName: backend-canary-analysis
             args:
               - name: canary-version
-                value: "v2"
+                value: "canary"
         - setWeight: 50
         - pause: { duration: 30s }
         - setWeight: 75
@@ -72,7 +72,9 @@ spec:
                 name: backend-config
           env:
             - name: VERSION
-              value: "v2"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['rollout-pod-template-hash-version']
             - name: PORT
               value: "5678"
             - name: FAIL_RATE
