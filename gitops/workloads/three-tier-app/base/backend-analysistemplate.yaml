@@ -3,9 +3,7 @@ kind: AnalysisTemplate
 metadata:
   name: backend-canary-analysis
 spec:
-  args:
-    - name: canary-version
-
+  
   metrics:
     # ----- Gate 1: success rate (>= 95%) -----
     - name: success-rate
@@ -21,14 +19,12 @@ spec:
           query: |
             (
               sum(rate(http_requests_total{
-                job=~"backend-svc.*",
-                status=~"2..",
-                version="{{args.canary-version}}"
+                job="backend-svc-canary",
+                status=~"2.."
               }[2m]))
               /
               sum(rate(http_requests_total{
-                job=~"backend-svc.*",
-                version="{{args.canary-version}}"
+                job="backend-svc-canary"
               }[2m]))
             ) OR on() vector(0)
 
@@ -47,8 +43,7 @@ spec:
             (
               histogram_quantile(0.95,
                 sum(rate(http_request_duration_seconds_bucket{
-                  job=~"backend-svc.*",
-                  version="{{args.canary-version}}"
+                  job="backend-svc-canary"
                 }[2m])) by (le)
               ) * 1000
             ) OR on() vector(0)

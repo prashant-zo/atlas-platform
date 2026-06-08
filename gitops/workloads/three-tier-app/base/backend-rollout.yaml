@@ -27,9 +27,6 @@ spec:
         - analysis:
             templates:
               - templateName: backend-canary-analysis
-            args:
-              - name: canary-version
-                value: "canary"
         - setWeight: 50
         - pause: { duration: 30s }
         - setWeight: 75
