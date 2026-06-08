@@ -58,7 +58,7 @@ This script handles:
 
 ```bash
 # Cluster accessible
-aws eks update-kubeconfig --name atlas-eks-dev --region ap-south-1 --profile atlas
+aws eks update-kubeconfig --name atlas-eks-dev --region ap-south-1 --profile atlas --alias atlas-eks-dev
 kubectl get nodes
 # Expected: 2 nodes Ready (t3.large SPOT)
 
@@ -249,6 +249,11 @@ cd infrastructure/terraform
 ./destroy.sh
 # Type "destroy atlas" when prompted
 ```
+
+# Step 3: Clean up local kubeconfig context (prevents next bootstrap from colliding)
+kubectl config delete-context atlas-eks-dev 2>/dev/null || true
+kubectl config delete-cluster atlas-eks-dev 2>/dev/null || true
+kubectl config delete-user atlas-eks-dev 2>/dev/null || true
 
 **Expected duration:** ~3 min pre-destroy + ~15 min Terraform destroy = ~18 min total.
 
