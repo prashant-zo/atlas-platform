@@ -62,7 +62,7 @@ spec:
               done
       containers:
         - name: backend
-          image: ghcr.io/prashant-zo/atlas-backend:v2
+          image: ghcr.io/prashant-zo/atlas-backend:v3
           ports:
             - name: http
               containerPort: 5678
@@ -107,13 +107,13 @@ spec:
               cpu: "200m"
           readinessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: 5678
             initialDelaySeconds: 3
             periodSeconds: 5
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: 5678
             initialDelaySeconds: 10
             periodSeconds: 10
