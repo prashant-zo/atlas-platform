@@ -3,14 +3,15 @@ name: build-backend
 on:
   push:
     branches: [main]
+    tags: ['v*']
     paths:
       - 'apps/backend/**'
       - '.github/workflows/build-backend.yml'
-  workflow_dispatch:    # manual trigger from GitHub UI
+  workflow_dispatch:
 
 permissions:
-  contents: read         # to checkout the repo
-  packages: write        # to push to GHCR
+  contents: read      # needed to checkout the repo
+  packages: write     # needed to push images to GHCR
 
 env:
   REGISTRY: ghcr.io
@@ -19,10 +20,11 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -40,10 +42,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=v1
-            type=raw,value=v2
-            type=raw,value=latest
+            type=ref,event=branch
             type=sha,format=short,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}},event=tag
+            type=semver,pattern={{major}}.{{minor}},event=tag
+            type=semver,pattern={{major}},event=tag
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -56,3 +60,16 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Report pushed tags
+        run: |
+          echo "### Pushed image tags" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Use the SHA tag in production manifests (immutable reference):" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" | head -c 64; echo "..." >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
