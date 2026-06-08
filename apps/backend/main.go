@@ -40,6 +40,7 @@ var (
 )
 
 func main() {
+	http.HandleFunc("/healthz", healthzHandler)
 	http.HandleFunc("/", handler)
 	http.Handle("/metrics", promhttp.Handler())
 
@@ -70,6 +71,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	requestsTotal.WithLabelValues(version, status).Inc()
 	requestDuration.WithLabelValues(version).Observe(time.Since(start).Seconds())
+}
+
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"version": version,
+	})
 }
 
 func getenv(k, def string) string {
