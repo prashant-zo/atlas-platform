@@ -1,0 +1,16 @@
+- op: replace
+  path: /spec/jobTemplate/spec/template/spec/containers/0/command/2
+  value: |
+    # Send a burst of 60 requests over 60 seconds (1 RPS roughly).
+    # Job runs every minute, so this gives ~constant traffic at ~1 RPS.
+    #
+    # We hit the ingress-nginx controller with the backend ingress's
+    set -eu
+    TARGET="http://ingress-nginx-controller.ingress-nginx.svc:80/"
+    HOST_HEADER="backend-staging.atlas.local"
+    end=$(($(date +%s) + 55))
+    while [ "$(date +%s)" -lt "$end" ]; do
+      curl -sS -o /dev/null -m 5 -H "Host: ${HOST_HEADER}" "$TARGET" || true
+      sleep 1
+    done
+    echo "burst complete"

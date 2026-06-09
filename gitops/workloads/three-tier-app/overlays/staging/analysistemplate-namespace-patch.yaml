@@ -1,0 +1,27 @@
+- op: replace
+  path: /spec/metrics/0/provider/prometheus/query
+  value: |
+    (
+      sum(rate(http_requests_total{
+        job="backend-svc-canary",
+        namespace="three-tier-staging",
+        status=~"2.."
+      }[2m]))
+      /
+      sum(rate(http_requests_total{
+        job="backend-svc-canary",
+        namespace="three-tier-staging"
+      }[2m]))
+    ) OR on() vector(0)
+
+- op: replace
+  path: /spec/metrics/1/provider/prometheus/query
+  value: |
+    (
+      histogram_quantile(0.95,
+        sum(rate(http_request_duration_seconds_bucket{
+          job="backend-svc-canary",
+          namespace="three-tier-staging"
+        }[2m])) by (le)
+      ) * 1000
+    ) OR on() vector(0)
