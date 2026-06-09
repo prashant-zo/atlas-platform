@@ -230,6 +230,148 @@ for an example of the Error path.
 
 ---
 
+## Retry vs Revert After Degraded
+
+If the Rollout is `✖ Degraded` because of a FAILED analysis (Case A),
+you have two recovery paths. The right one depends on whether the
+ROOT CAUSE is in the deployment or in the measurement plane.
+
+### Decision Tree
+
+Rollout: ✖ Degraded
+│
+├─ Did the canary code itself misbehave?
+│  (50% error rate, latency spike, real bug in the release)
+│
+│   YES → REVERT
+│   No  → continue
+│
+├─ Did the analysis plane misbehave?
+│  (Prometheus down, ServiceMonitor broken, wrong PromQL query)
+│
+│   YES → FIX THE PLANE, THEN RETRY
+│   No  → continue
+│
+└─ Did the deployment pipeline misbehave?
+(ArgoCD didn't sync, image pull failed, manifest changed)
+
+YES → FIX THE PIPELINE, THEN RETRY
+No  → escalate (this case is genuinely unusual)
+
+### Path 1: Revert (Most Common)
+
+The release itself is bad. Get back to last-known-good fast.
+
+```bash
+git revert HEAD --no-edit
+git push
+# ArgoCD picks up the revert automatically; Argo Rollouts
+# treats the revert as a return to the previous stable
+# ReplicaSet and promotes directly (no new canary cycle).
+```
+
+Cluster returns to Healthy 4/4 within ~30 seconds. Capture
+forensics first (logs, AnalysisRun describe) before reverting if
+you need to debug the bad release later.
+
+### Path 2: Retry (After Fixing Underlying Issue)
+
+The Rollout SPEC has been updated in Git (you fixed the root cause:
+Prometheus came back, you fixed the query, you fixed the
+traffic-generator, etc.). ArgoCD has synced the new spec to the
+Rollout CRD. But:
+
+**Argo Rollouts will NOT automatically retry a Degraded rollout.**
+
+This is by design. Automatic retry would be unsafe — it would
+re-attempt deploys that hadn't actually been fixed, and would create
+churn under repeated failures. The operator must explicitly say
+"the root cause is fixed, please try this again":
+
+```bash
+kubectl argo rollouts retry rollout <name> -n <namespace>
+```
+
+This creates a new revision from the CURRENT Rollout spec and starts
+the canary process over.
+
+### When To Use Each
+
+| Situation | Path |
+|---|---|
+| Bad code in HEAD, fast rollback | Revert |
+| Analysis template was wrong, fixed it | Retry |
+| Prometheus was OOMing, raised limit | Retry |
+| Traffic source was broken, fixed it | Retry |
+| Image pull failed, fixed image | Retry |
+| Spec change you want to re-attempt | Retry |
+| Bad deploy that you DON'T want to repeat | Revert |
+
+### Diagnostic Before Retry
+
+Before running `retry`, verify the new spec is actually different
+from what failed:
+
+```bash
+# What's in Git
+grep -A1 "FAIL_RATE\|VERSION" gitops/workloads/three-tier-app/base/backend-rollout.yaml
+
+# What's in the Rollout CRD
+kubectl get rollout backend -n three-tier-dev \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="backend")].env}' | jq .
+
+# What was tried last (the failed ReplicaSet's spec)
+kubectl get replicaset <failed-rs-name> -n three-tier-dev \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="backend")].env}' | jq .
+```
+
+The first two should match (ArgoCD sync worked). The third should
+DIFFER from the first (your fix is genuinely a change). If the first
+two don't match, ArgoCD hasn't synced — `argocd app sync` first. If
+the first and third match, your "fix" isn't actually a fix — retry
+will produce the same failure.
+
+### What Retry Actually Does
+
+Rollout: Degraded
+│
+│  kubectl argo rollouts retry rollout <name> -n <ns>
+│
+▼
+Rollout: Progressing
+│  - Argo Rollouts creates a new revision (N+1)
+│  - ReplicaSet built from current spec
+│  - Canary pod created, becomes Ready
+│  - AnalysisRun starts after initialDelay
+│  - If passes: progress through all 6 canary steps
+│  - If fails: back to Degraded, capture forensics
+
+Without `retry`, the Rollout stays Degraded indefinitely even if Git
+has the fix and ArgoCD has synced. The user-visible bug looks like
+"ArgoCD reports Synced but the cluster isn't progressing" — but
+that's actually correct behavior from both controllers.
+
+### Common Mistakes
+
+- **Pushing a fix and waiting for things to happen.** ArgoCD will
+  sync, but the Rollout won't retry automatically. You MUST run
+  `kubectl argo rollouts retry`.
+
+- **Running `retry` before the fix is in the Rollout spec.** Wait for
+  ArgoCD to sync first (`kubectl get application -n argocd` showing
+  Synced + Healthy, or `sleep 20`), then retry.
+
+- **Confusing `retry` with `promote --full`.** `retry` re-attempts the
+  canary cycle with current spec. `promote --full` skips analysis and
+  forces the canary to 100% without verification. These are very
+  different operations.
+
+- **Treating Degraded as "ArgoCD is broken."** It's not. ArgoCD
+  syncs manifests. Argo Rollouts decides whether to retry. Two
+  different controllers, two different responsibilities.
+
+---
+
 ## Related
 
 - `004-broken-canary-deliberate-gameday.md` — INC-004 GameDay record
