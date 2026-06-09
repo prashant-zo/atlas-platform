@@ -1,8 +1,8 @@
+# k6 load test Job for backend canary analysis.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: k6-backend-canary-load
-  namespace: three-tier-dev
   labels:
     app: k6-load-test
 spec:
@@ -17,6 +17,9 @@ spec:
       containers:
         - name: k6
           image: grafana/k6:0.55.0
+          env:
+            - name: HOST_HEADER
+              value: "PLACEHOLDER_SET_BY_RUN_SH"
           resources:
             requests:
               cpu: 100m
