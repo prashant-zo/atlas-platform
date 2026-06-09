@@ -48,19 +48,19 @@ variable "node_instance_type" {
 variable "node_desired_size" {
   description = "Desired number of worker nodes"
   type        = number
-  default     = 2
+  default     = 4
 }
 
 variable "node_min_size" {
   description = "Minimum number of worker nodes"
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "node_max_size" {
   description = "Maximum number of worker nodes (for scale tests)"
   type        = number
-  default     = 4
+  default     = 6
 }
 
 variable "node_disk_size" {

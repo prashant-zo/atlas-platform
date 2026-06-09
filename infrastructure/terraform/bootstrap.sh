@@ -141,9 +141,9 @@ private_subnet_ids = ${private_subnets_json}
 
 # Node group
 node_instance_type = "t3.large"
-node_desired_size  = 2
-node_min_size      = 2
-node_max_size      = 4
+node_desired_size  = 4
+node_min_size      = 3
+node_max_size      = 6
 node_disk_size     = 20
 
 # Endpoint access
