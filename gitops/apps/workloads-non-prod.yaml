@@ -15,6 +15,9 @@ spec:
     - list:
         elements:
           - env: dev
+            wave: "1"
+          - env: staging
+            wave: "2"
 
   template:
     metadata:
@@ -26,7 +29,7 @@ spec:
         app.atlas.io/env: '{{ .env }}'
       # Workloads sync AFTER platform components
       annotations:
-         argocd.argoproj.io/sync-wave: '1'
+         argocd.argoproj.io/sync-wave: '{{ .wave }}'
     spec:
       project: default
       source:
