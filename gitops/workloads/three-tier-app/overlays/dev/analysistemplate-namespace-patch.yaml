@@ -1,0 +1,37 @@
+# JSON 6902 patch — inject namespace filter into AnalysisTemplate queries.
+#
+# Without this filter, the AnalysisTemplate query
+#   sum(rate(http_requests_total{job="backend-svc-canary",status=~"2.."}[2m]))
+# matches metrics from ALL backend-svc-canary Services cluster-wide. With
+# three envs (dev, staging, prod) all deploying backend-svc-canary in their
+# own namespace, the same query would mix dev/staging/prod canary metrics
+# into one number — staging canary failures could mask dev canary failures
+# and vice versa.
+
+- op: replace
+  path: /spec/metrics/0/provider/prometheus/query
+  value: |
+    (
+      sum(rate(http_requests_total{
+        job="backend-svc-canary",
+        namespace="three-tier-dev",
+        status=~"2.."
+      }[2m]))
+      /
+      sum(rate(http_requests_total{
+        job="backend-svc-canary",
+        namespace="three-tier-dev"
+      }[2m]))
+    ) OR on() vector(0)
+
+- op: replace
+  path: /spec/metrics/1/provider/prometheus/query
+  value: |
+    (
+      histogram_quantile(0.95,
+        sum(rate(http_request_duration_seconds_bucket{
+          job="backend-svc-canary",
+          namespace="three-tier-dev"
+        }[2m])) by (le)
+      ) * 1000
+    ) OR on() vector(0)

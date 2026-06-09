@@ -36,3 +36,10 @@ patches:
       version: v1alpha1
       kind: Rollout
       name: backend
+
+  - path: analysistemplate-namespace-patch.yaml
+    target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: AnalysisTemplate
+      name: backend-canary-analysis
