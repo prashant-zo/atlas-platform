@@ -24,6 +24,9 @@ spec:
         app.atlas.io/category: workload
         app.atlas.io/workload: three-tier-app
         app.atlas.io/env: '{{ .env }}'
+      # Workloads sync AFTER platform components
+      annotations:
+         argocd.argoproj.io/sync-wave: '1'
     spec:
       project: default
       source:
@@ -43,11 +46,11 @@ spec:
           - ApplyOutOfSyncOnly=true
           - RespectIgnoreDifferences=true
         retry:
-          limit: 5
+          limit: 20
           backoff:
             duration: 5s
             factor: 2
-            maxDuration: 3m
+            maxDuration: 5m
 
       ignoreDifferences:
         - group: apps

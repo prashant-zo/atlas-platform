@@ -27,6 +27,9 @@ spec:
         app.atlas.io/managed-by: argocd
         app.atlas.io/category: platform
         app.atlas.io/component: '{{ .path.basename }}'
+      # Sync-wave ordering ensures CNPG operator
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{ if eq .path.basename "cnpg-operator" }}-1{{ else }}0{{ end }}'
     spec:
       project: default
 
