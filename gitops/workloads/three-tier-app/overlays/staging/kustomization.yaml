@@ -59,3 +59,10 @@ patches:
       version: v1
       kind: CronJob
       name: traffic-generator
+
+  - path: canary-trigger-latency-patch.yaml
+    target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Rollout
+      name: backend
