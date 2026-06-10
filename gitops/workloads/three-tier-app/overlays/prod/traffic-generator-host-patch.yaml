@@ -1,0 +1,18 @@
+- op: replace
+  path: /spec/jobTemplate/spec/template/spec/containers/0/command/2
+  value: |
+    # Traffic-generator burst — sends ~1 RPS for 55 seconds per minute
+    # against the prod ingress, providing baseline metrics that the
+    # AnalysisTemplate's PromQL queries can measure during a canary.
+    #
+    # PROD OVERLAY: Host header is backend-prod.atlas.local so traffic
+    # routes to prod's Ingress, not dev's or staging's.
+    set -eu
+    TARGET="http://ingress-nginx-controller.ingress-nginx.svc:80/"
+    HOST_HEADER="backend-prod.atlas.local"
+    end=$(($(date +%s) + 55))
+    while [ "$(date +%s)" -lt "$end" ]; do
+      curl -sS -o /dev/null -m 5 -H "Host: ${HOST_HEADER}" "$TARGET" || true
+      sleep 1
+    done
+    echo "burst complete"

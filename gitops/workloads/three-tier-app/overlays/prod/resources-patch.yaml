@@ -1,21 +1,4 @@
 ---
-apiVersion: argoproj.io/v1alpha1
-kind: Rollout
-metadata:
-  name: backend
-spec:
-  template:
-    spec:
-      containers:
-        - name: backend
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "500m"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
