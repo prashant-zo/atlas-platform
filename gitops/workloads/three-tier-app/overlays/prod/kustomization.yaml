@@ -59,3 +59,5 @@ patches:
       version: v1
       kind: CronJob
       name: traffic-generator
+
+# Manual-sync demo marker — proves prod requires explicit `acd app sync`
