@@ -19,7 +19,6 @@ warn()    { echo -e "${YELLOW}[$(date +%H:%M:%S)] !${NC} $*"; }
 error()   { echo -e "${RED}[$(date +%H:%M:%S)] ✗${NC} $*" >&2; }
 
 # Pre-flight
-
 preflight() {
   log "Pre-flight checks..."
 
@@ -37,15 +36,14 @@ preflight() {
   success "AWS auth: $arn"
 }
 
-# Strong confirmation — destroy is irreversible
-
+# Strong confirmation
 confirm_destroy() {
   echo
   warn "=== ABOUT TO DESTROY AWS RESOURCES ==="
   echo
   echo "This will destroy:"
   echo "  - IAM-IRSA roles"
-  echo "  - EKS cluster (control plane + 2 worker nodes)"
+  echo "  - EKS cluster (control plane + worker nodes)"
   echo "  - VPC, subnets, NAT gateway, route tables, EIPs"
   echo
   echo "All Kubernetes workloads on the cluster will be deleted."
@@ -54,62 +52,44 @@ confirm_destroy() {
   echo
   read -rp "Type 'destroy atlas' to confirm: " confirm
   if [[ "$confirm" != "destroy atlas" ]]; then
-    log "Aborted by user. Resources still running (still costing money)."
+    log "Aborted by user. Resources still running."
     exit 0
   fi
   echo
 }
 
-# Destroy in reverse order: iam-irsa → eks → vpc
-
-destroy_iam_irsa() {
-  log "═══ Step 1/3 — Destroying IAM-IRSA ═══"
-
-  if [[ ! -f "$IAM_IRSA_DIR/terraform.tfstate" && ! -d "$IAM_IRSA_DIR/.terraform" ]]; then
-    warn "IAM-IRSA has no state — skipping"
+# Generic module destroyer to handle remote/local state safely
+destroy_module() {
+  local name="$1"
+  local dir="$2"
+  
+  log "═══ Destroying $name ═══"
+  
+  if [[ ! -d "$dir" ]]; then
+    warn "$name directory not found at $dir — skipping"
     return 0
   fi
 
-  cd "$IAM_IRSA_DIR"
+  cd "$dir"
+  
+  # Initialize to ensure remote backends and providers are ready
+  log "Initializing Terraform for $name..."
+  terraform init -input=false >/dev/null 2>&1 || true
+  
+  log "Applying destruction for $name..."
   terraform destroy -auto-approve -input=false
-  success "IAM-IRSA destroyed"
+  success "$name destroyed"
   cd "$SCRIPT_DIR"
 }
 
-destroy_eks() {
-  log "═══ Step 2/3 — Destroying EKS (~8-10 min) ═══"
-
-  if [[ ! -f "$EKS_DIR/terraform.tfstate" && ! -d "$EKS_DIR/.terraform" ]]; then
-    warn "EKS has no state — skipping"
-    return 0
-  fi
-
-  cd "$EKS_DIR"
-  terraform destroy -auto-approve -input=false
-  success "EKS destroyed"
-  cd "$SCRIPT_DIR"
-}
-
-destroy_vpc() {
-  log "═══ Step 3/3 — Destroying VPC ═══"
-
-  if [[ ! -f "$VPC_DIR/terraform.tfstate" && ! -d "$VPC_DIR/.terraform" ]]; then
-    warn "VPC has no state — skipping"
-    return 0
-  fi
-
-  cd "$VPC_DIR"
-  terraform destroy -auto-approve -input=false
-  success "VPC destroyed"
-  cd "$SCRIPT_DIR"
-}
+destroy_iam_irsa() { destroy_module "IAM-IRSA" "$IAM_IRSA_DIR"; }
+destroy_eks()      { destroy_module "EKS" "$EKS_DIR"; }
+destroy_vpc()      { destroy_module "VPC" "$VPC_DIR"; }
 
 # Verify nothing's left behind
-
 verify_clean() {
   log "Verifying no Atlas resources remain..."
 
-  # Quick check: list any EC2 instances tagged Project=atlas
   local instances
   instances=$(aws ec2 describe-instances \
     --filters "Name=tag:Project,Values=atlas" "Name=instance-state-name,Values=running,pending,stopping,stopped" \
@@ -123,7 +103,6 @@ verify_clean() {
     success "No Atlas EC2 instances running"
   fi
 
-  # Check NAT gateways (most expensive lingering resource)
   local nats
   nats=$(aws ec2 describe-nat-gateways \
     --filter "Name=tag:Project,Values=atlas" "Name=state,Values=available,pending" \
@@ -138,25 +117,38 @@ verify_clean() {
   fi
 }
 
-# Summary
-
 print_summary() {
   echo
   echo "═══════════════════════════════════════════════════════════════"
   success "Teardown complete!"
   echo "═══════════════════════════════════════════════════════════════"
-  echo
   echo "  All Atlas modules destroyed."
   echo "  Verify in AWS console: https://console.aws.amazon.com"
-  echo "  Check Cost Explorer in 24h to confirm \$0 ongoing charges."
   echo
 }
 
-# Main
+predestroy_cleanup() {
+  log "═══ Step 0/3 — Kubernetes pre-destroy cleanup ═══"
+
+  local script="${SCRIPT_DIR}/../../scripts/pre-destroy-cleanup.sh"
+
+  if [[ ! -x "$script" ]]; then
+    warn "pre-destroy-cleanup.sh not found/executable at $script — skipping"
+    return 0
+  fi
+
+  if ! "$script"; then
+    error "Pre-destroy cleanup FAILED. Aborting before terraform destroy."
+    exit 1
+  fi
+
+  success "Pre-destroy cleanup complete"
+}
 
 main() {
   preflight
   confirm_destroy
+  predestroy_cleanup
   destroy_iam_irsa
   destroy_eks
   destroy_vpc
