@@ -1,3 +1,5 @@
+# Multi-window burn-rate SLO alerts for three-tier-app across all envs.
+
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -24,13 +26,16 @@ spec:
           labels:
             severity: critical
             slo: availability
-            service: three-tier-dev
+            namespace: '{{ $labels.namespace }}'
+            environment: '{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
+            service: 'three-tier-{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
           annotations:
-            summary: "Three-tier DB availability budget burning FAST"
+            summary: "Three-tier DB availability budget burning FAST in {{ $labels.namespace }}"
             description: >
-              Database availability SLI is failing fast enough to exhaust
-              the 28-day error budget in ~2 days. Both 1h and 5m windows
-              exceed 14.4x burn rate. Check Postgres primary and PgBouncer.
+              Database availability SLI in namespace {{ $labels.namespace }}
+              is failing fast enough to exhaust the 28-day error budget in
+              ~2 days. Both 1h and 5m windows exceed 14.4x burn rate.
+              Check Postgres primary and PgBouncer in this env.
             runbook: "docs/runbooks/postgres-failover.md"
 
         - alert: ThreeTierAvailabilityBurnSlow
@@ -46,13 +51,16 @@ spec:
           labels:
             severity: warning
             slo: availability
-            service: three-tier-dev
+            namespace: '{{ $labels.namespace }}'
+            environment: '{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
+            service: 'three-tier-{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
           annotations:
-            summary: "Three-tier DB availability budget burning slowly"
+            summary: "Three-tier DB availability budget burning slowly in {{ $labels.namespace }}"
             description: >
-              Database availability SLI is degraded over a sustained
-              period (6h and 30m windows exceed 3x burn rate). Not an
-              emergency, but investigate before budget depletes.
+              Database availability SLI in {{ $labels.namespace }} is
+              degraded over a sustained period (6h and 30m windows exceed
+              3x burn rate). Not an emergency, but investigate before
+              budget depletes.
             runbook: "docs/runbooks/postgres-failover.md"
 
     - name: three-tier-latency-burn
@@ -70,13 +78,15 @@ spec:
           labels:
             severity: critical
             slo: latency
-            service: three-tier-dev
+            namespace: '{{ $labels.namespace }}'
+            environment: '{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
+            service: 'three-tier-{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
           annotations:
-            summary: "Three-tier DB latency budget burning FAST"
+            summary: "Three-tier DB latency budget burning FAST in {{ $labels.namespace }}"
             description: >
-              PgBouncer pool wait time is exceeding 50ms frequently
-              enough to burn the latency budget in ~2 days. Check pool
-              saturation and Postgres load.
+              PgBouncer pool wait time in {{ $labels.namespace }} is
+              exceeding 50ms frequently enough to burn the latency budget
+              in ~2 days. Check pool saturation and Postgres load.
             runbook: "docs/runbooks/postgres-failover.md"
 
         - alert: ThreeTierLatencyBurnSlow
@@ -92,12 +102,15 @@ spec:
           labels:
             severity: warning
             slo: latency
-            service: three-tier-dev
+            namespace: '{{ $labels.namespace }}'
+            environment: '{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
+            service: 'three-tier-{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
           annotations:
-            summary: "Three-tier DB latency budget burning slowly"
+            summary: "Three-tier DB latency budget burning slowly in {{ $labels.namespace }}"
             description: >
-              PgBouncer pool wait time degraded over a sustained period.
-              Investigate pool sizing or query patterns.
+              PgBouncer pool wait time in {{ $labels.namespace }} degraded
+              over a sustained period. Investigate pool sizing or query
+              patterns.
             runbook: "docs/runbooks/postgres-failover.md"
 
     - name: three-tier-backup-burn
@@ -115,13 +128,16 @@ spec:
           labels:
             severity: critical
             slo: backup_freshness
-            service: three-tier-dev
+            namespace: '{{ $labels.namespace }}'
+            environment: '{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
+            service: 'three-tier-{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
           annotations:
-            summary: "Three-tier backup freshness budget burning FAST"
+            summary: "Three-tier backup freshness budget burning FAST in {{ $labels.namespace }}"
             description: >
-              Last successful backup is aging past 26 hours. Backup chain
-              may be broken. This threatens disaster recovery capability.
-              Check ScheduledBackup and MinIO WAL archive.
+              Last successful backup in {{ $labels.namespace }} is aging
+              past 26 hours. Backup chain may be broken. This threatens
+              disaster recovery capability for this env. Check
+              ScheduledBackup and MinIO WAL archive.
             runbook: "docs/runbooks/postgres-pitr-recovery.md"
 
         - alert: ThreeTierBackupFreshnessBurnSlow
@@ -137,10 +153,13 @@ spec:
           labels:
             severity: warning
             slo: backup_freshness
-            service: three-tier-dev
+            namespace: '{{ $labels.namespace }}'
+            environment: '{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
+            service: 'three-tier-{{ reReplaceAll "three-tier-" "" $labels.namespace }}'
           annotations:
-            summary: "Three-tier backup freshness degrading"
+            summary: "Three-tier backup freshness degrading in {{ $labels.namespace }}"
             description: >
-              Backup freshness SLI degraded over a sustained period.
-              Verify the daily ScheduledBackup is completing.
+              Backup freshness SLI in {{ $labels.namespace }} degraded
+              over a sustained period. Verify the daily ScheduledBackup
+              is completing.
             runbook: "docs/runbooks/postgres-pitr-recovery.md"
