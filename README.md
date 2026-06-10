@@ -1,56 +1,161 @@
 # Atlas Platform
 
-Production-grade GitOps platform on Kubernetes — built to demonstrate senior-level depth across GitOps, HA databases, SLO-based observability, and progressive delivery.
+A GitOps Kubernetes platform with multi-environment progressive delivery,
+HA Postgres, and SLO-based observability. Built end-to-end on AWS EKS with
+local development via kind.
 
-> **Status:** 🔨 Week 1 in progress · See [ROADMAP.md](./ROADMAP.md) for full plan.
-
----
-
-## What This Is
-
-Atlas is a single-cluster Kubernetes platform implementing the patterns real platform engineering teams use in production:
-
-- **GitOps-driven** — every cluster change goes through Git via ArgoCD
-- **HA database** — CloudNativePG operator with streaming replication and WAL archiving
-- **SLO-based alerting** — multi-window burn-rate alerts per Google SRE patterns
-- **Progressive delivery** — Argo Rollouts canary with automated metric-based analysis
-- **Observable** — Prometheus + Grafana + Loki with curated dashboards
-
-The platform deploys a three-tier reference application (frontend, API, Postgres) that exercises every capability of the platform.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Architecture
+## What's Here
+
+Atlas runs three environments — dev, staging, prod — side by side on a single
+EKS cluster. Each environment is fully isolated: distinct pod template hashes,
+per-environment ingress hosts, namespace-scoped canary analysis. A failed canary
+in one environment cannot affect the others, and prod requires explicit manual
+sync (Git is the source of truth, but humans gate every prod change).
+
+The platform exercises a three-tier reference application — frontend (nginx),
+backend (HTTP service with Prometheus metrics), and CloudNativePG Postgres
+cluster (3 instances + connection pooler) — plus MinIO for backup storage.
+Multi-window burn-rate SLO alerts cover all three environments via a single
+rule group with dynamic per-environment label injection.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      External Traffic                       │
-│                            │                                │
-│                    nginx-ingress + TLS                      │
-│                            │                                │
-├────────────────────────────┴────────────────────────────────┤
-│                                                             │
-│   ┌────────────┐    ┌────────────┐    ┌──────────────┐      │
-│   │  Frontend  │    │  Backend   │    │  CloudNative │      │
-│   │  (Nginx)   │───▶│  (Node.js) │───▶│  PG Cluster  │      │
-│   │  Rollout   │    │  Rollout   │    │  1pri + 2rep │      │
-│   └────────────┘    └────────────┘    └──────┬───────┘      │
-│         ▲                  ▲                  │              │
-│         │                  │                  ▼              │
-│   ┌─────┴──────────────────┴─────┐    ┌────────────┐         │
-│   │  ArgoCD (App of Apps)        │    │   MinIO    │         │
-│   │  ↑ syncs from Git            │    │  WAL + PIT │         │
-│   └──────────────────────────────┘    └────────────┘         │
-│                                                              │
-│   ┌──────────────────────────────────────────────────┐       │
-│   │  Observability: Prometheus + Grafana + Loki      │       │
-│   │  SLO burn-rate alerts → AlertManager             │       │
-│   └──────────────────────────────────────────────────┘       │
-│                                                              │
-│              3-node kind cluster (local dev)                 │
-│           validated on EKS ap-south-1 (weekend run)          │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        AWS EKS (ap-south-1)                          │
+│                  4× t3.large spot · 2 vCPU / 8 GiB                   │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │  ArgoCD (app-of-apps + ApplicationSets + sync waves)           │  │
+│  │  ↓ reconciles from github.com/prashant-zo/atlas-platform       │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐         │
+│  │ three-tier-   │    │ three-tier-   │    │ three-tier-   │         │
+│  │ dev           │    │ staging       │    │ prod          │         │
+│  │ wave 1, auto  │    │ wave 2, auto  │    │ wave 3, MANUAL│         │
+│  ├───────────────┤    ├───────────────┤    ├───────────────┤         │
+│  │ • 4× backend  │    │ • 2× backend  │    │ • 3× backend  │         │
+│  │   (Rollout)   │    │   (Rollout)   │    │   (Rollout)   │         │
+│  │ • 1× frontend │    │ • 2× frontend │    │ • 3× frontend │         │
+│  │ • 3× pg-CNPG  │    │ • 3× pg-CNPG  │    │ • 3× pg-CNPG  │         │
+│  │ • MinIO       │    │ • MinIO       │    │ • MinIO       │         │
+│  └───────┬───────┘    └───────┬───────┘    └───────┬───────┘         │
+│          │                    │                    │                 │
+│          │     backend.       │   backend-         │   backend-      │
+│          │     atlas.local    │   staging.         │   prod.         │
+│          │                    │   atlas.local      │   atlas.local   │
+│          └────────────────────┴────────────────────┘                 │
+│                            │                                         │
+│                  ┌─────────┴──────────┐                              │
+│                  │  ingress-nginx     │                              │
+│                  │  (per-env hosts)   │                              │
+│                  └────────────────────┘                              │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │  Observability                                                 │  │
+│  │  • Prometheus (kube-prometheus-stack)                          │  │
+│  │  • Loki + Promtail                                             │  │
+│  │  • Multi-env SLO rules: namespace=~"three-tier-.*"             │  │
+│  │  • Per-env burn-rate alerts (Google SRE multi-window pattern)  │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │  Progressive Delivery (per env)                                │  │
+│  │  Argo Rollouts canary: 25% → analysis → 50/75/100              │  │
+│  │  AnalysisTemplate queries Prometheus, scoped per namespace     │  │
+│  │  Auto-aborts on success-rate < 0.99 (2 failed measurements)    │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Core Capabilities
+
+| Capability | Implementation |
+|---|---|
+| GitOps engine | ArgoCD with app-of-apps + ApplicationSets |
+| Sync ordering | Wave -1 (operators) → 0 (platform) → 1 (dev) → 2 (staging) → 3 (prod manual) |
+| Configuration | Kustomize base + overlays; JSON 6902 patches for CRDs |
+| HA database | CloudNativePG operator, 3 instances, PgBouncer pooling, daily backups + WAL archive |
+| Backup storage | MinIO (S3-compatible) per environment |
+| Progressive delivery | Argo Rollouts canary, NGINX traffic split, Prometheus-gated promotion |
+| Canary analysis | Per-env namespace-scoped queries; auto-abort on threshold breach |
+| Observability | Prometheus + Loki + Grafana; ServiceMonitors per env |
+| SLO alerting | Multi-window burn-rate (Google SRE pattern); dynamic per-env labels |
+| Infrastructure | Terraform — VPC + EKS + IAM/IRSA modules |
+| Node strategy | 4× t3.large spot with t3a.large fallback |
+| Teardown | One-command `destroy.sh` with CNCF top-down K8s cleanup; zero EBS orphans |
+
+---
+
+## What's Deployed (Measured)
+
+End of Day 2 sprint (2026-06-10) on a fresh 4-node cluster:
+
+```
+kubectl get applications -n argocd
+─────────────────────────────────────────────────
+platform-argo-rollouts     Synced    Healthy
+platform-cnpg-operator     Synced    Healthy
+platform-ingress-nginx     Synced    Healthy
+platform-kube-prometheus   Synced    Healthy
+platform-loki              Synced    Healthy
+platform-metrics-server    Synced    Healthy
+root-app-of-apps           Synced    Healthy
+three-tier-dev             Synced    Healthy   (13 pods)
+three-tier-staging         Synced    Healthy   (13 pods)
+three-tier-prod            Synced    Healthy   (14 pods)
+```
+
+Total cluster: 82 pods across 4 nodes (~21% memory utilization).
+SLO recording rules emit one series per env, all at 1.0 (healthy).
+
+---
+
+## Quick Start
+
+### Local (kind, M1 Mac via Colima)
+
+```bash
+# Prereqs: Docker (via Colima), kind, kubectl, helm, kustomize
+make verify
+
+# Bring up 3-node kind cluster + platform stack + dev environment
+make up && make platform && make bootstrap-gitops
+
+# Cluster status
+make status
+
+# Tear down
+make down
+```
+
+### AWS EKS
+
+```bash
+# Prereqs: AWS CLI configured with atlas-admin IAM user, Terraform >= 1.5
+./infrastructure/terraform/bootstrap.sh
+
+# After ~22 min: 4-node cluster live, kubeconfig configured
+./scripts/platform-install.sh
+make argocd && make bootstrap-gitops
+
+# After ~10 min: all platform Apps + dev + staging Synced + Healthy
+# Prod requires manual sync (production safety pattern):
+acd app sync three-tier-prod
+
+# Single-command teardown when done (~$0.20/hour while running)
+./infrastructure/terraform/destroy.sh
+```
+
+The EKS teardown handles top-down Kubernetes cleanup (ArgoCD → CNPG →
+StatefulSets → pods → PVCs → EBS volumes) before running Terraform destroy.
+Leaves zero EBS orphans. See [ADR-012](./docs/adr/012-eks-node-sizing-for-multi-env.md)
+for cost discussion.
 
 ---
 
@@ -58,86 +163,99 @@ The platform deploys a three-tier reference application (frontend, API, Postgres
 
 ```
 atlas/
-├── bootstrap/         Cluster + ArgoCD provisioning scripts
-├── infrastructure/
-│   ├── kind/          kind multi-node cluster config
-│   └── terraform/     EKS validation infrastructure
-├── platform/          Platform components (Helm values, manifests)
-│   ├── argocd/
-│   ├── prometheus/
-│   ├── grafana/
-│   ├── loki/
-│   ├── cert-manager/
-│   └── ingress-nginx/
-├── workloads/         Application workloads
-│   ├── app-of-apps/   Root ArgoCD application
-│   └── three-tier-app/
-│       ├── base/      Kustomize base
-│       └── overlays/  Environment overlays (dev/staging/prod)
-├── load-tests/        k6 performance tests
+├── infrastructure/terraform/    VPC, EKS, IAM/IRSA modules + bootstrap/destroy
+├── platform/                    kind config, Helm values
+├── gitops/
+│   ├── apps/                    ApplicationSets (workloads-non-prod, workloads-prod)
+│   ├── platform/                Platform Application sources (Prometheus rules, etc.)
+│   └── workloads/three-tier-app/
+│       ├── base/                Env-neutral manifests
+│       ├── database/            CNPG Cluster + MinIO
+│       └── overlays/
+│           ├── dev/             4 replicas, debug logging
+│           ├── staging/         2 replicas, info logging
+│           └── prod/            3 replicas, warn logging, manual sync
+├── load-tests/k6/               Parameterized k6 (NAMESPACE + HOST_HEADER)
+├── scripts/                     pre-destroy-cleanup, platform-install, helpers
 ├── docs/
-│   ├── adr/           Architecture Decision Records
-│   ├── incidents/     Incident postmortems
-│   └── runbooks/      Operational procedures
-└── scripts/           Utility scripts
+│   ├── adr/                     12 Architecture Decision Records (see below)
+│   ├── incidents/               5 incident postmortems
+│   ├── runbooks/                Operational procedures
+│   └── learning/                Sprint capture docs
+├── Makefile                     make verify | up | platform | argocd | status | down
+└── ROADMAP.md                   Per-week task tracking
 ```
 
 ---
 
-## Quick Start
+## Architecture Decisions
 
-## Quick Start
+Atlas documents non-trivial decisions as ADRs. Each captures context, the
+decision, alternatives considered, and reversibility.
 
-```bash
-# 1. Verify environment is ready
-make verify
+| ADR | Topic |
+|---|---|
+| [001](./docs/adr/001-cluster-runtime.md) | Why kind for local development |
+| [002](./docs/adr/002-gitops-engine.md) | ArgoCD over Flux |
+| [003](./docs/adr/003-postgres-operator.md) | CloudNativePG over Crunchy |
+| [004](./docs/adr/004-log-aggregation.md) | Loki over ELK |
+| [005](./docs/adr/005-progressive-delivery-with-argo-rollouts.md) | Argo Rollouts over Flagger |
+| [006](./docs/adr/006-multi-module-terraform-with-bash-orchestration.md) | Multi-module Terraform + bash orchestration |
+| [007](./docs/adr/007-single-nat-gateway-multi-az.md) | Single NAT gateway across AZs (cost) |
+| [008](./docs/adr/008-spot-only-node-group.md) | Spot-only node group |
+| [009](./docs/adr/009-podinfo-for-canary-validation.md) | podinfo backend for canary metrics |
+| [010](./docs/adr/010-multi-env-kustomize-overlay-pattern.md) | Multi-env Kustomize + JSON 6902 for CRDs |
+| [011](./docs/adr/011-per-env-canary-isolation.md) | Per-env canary isolation mechanism |
+| [012](./docs/adr/012-eks-node-sizing-for-multi-env.md) | EKS node sizing for multi-env coexistence |
 
-# 2. Bring cluster online + install platform
-make up && make platform
+---
 
-# 3. Check cluster status
-make status
+## Selected Learning Notes
 
-# Tear down when done
-make down
+Real bugs and discoveries documented along the way:
 
-# See all available operations
-make help
-```
-
-Requires: Docker (Colima recommended), kind, kubectl, helm. Run `make verify` to check.
+- [Kustomize strategic-merge CRD trap](./docs/learning/week-5-delivery/kustomize-strategic-merge-crd-trap.md)
+  — Why JSON 6902 is mandatory for Rollout / AnalysisTemplate / Cluster patches
+- [CNPG multi-env bootstrap timing](./docs/learning/week-6-eks/cnpg-multi-env-bootstrap-timing.md)
+  — Sequential sync waves prevent webhook race conditions
+- [Multi-env canary isolation demo](./docs/learning/week-6-eks/multi-env-canary-isolation-demo.md)
+  — Phase 1 success + Phase 2 abort, captured cross-env state at each step
+- [Day 2 multi-env GitOps sprint wrap-up](./docs/learning/week-6-eks/multi-env-gitops-day-2.md)
+  — Prod overlay, multi-env SLO, matrix tests, EBS orphan bug fix
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Container runtime | Docker via Colima (M1 native) |
-| Cluster (local) | kind (3-node) |
-| Cluster (validated) | AWS EKS ap-south-1 |
-| GitOps | ArgoCD + App-of-Apps |
-| Config management | Kustomize overlays + Helm |
-| Database | CloudNativePG operator |
-| Object storage | MinIO (S3-compatible, local) / AWS S3 (EKS) |
-| Metrics | Prometheus + kube-state-metrics + node-exporter |
-| Dashboards | Grafana |
+|---|---|
+| Cluster (local) | kind 0.24.x (3-node) on Colima |
+| Cluster (cloud) | AWS EKS 1.31, ap-south-1 |
+| Infrastructure-as-code | Terraform 1.5+ |
+| GitOps | ArgoCD 7.6.x (Helm) |
+| Configuration | Kustomize 5.x |
+| Database | CloudNativePG operator 1.24.x |
+| Object storage | MinIO (S3-compatible) |
+| Metrics | Prometheus + kube-state-metrics + node-exporter (kube-prometheus-stack 65.x) |
 | Logs | Loki + Promtail |
-| Alerts | AlertManager |
-| Progressive delivery | Argo Rollouts |
-| Load testing | k6 |
-| TLS (local) | mkcert |
-| TLS (cloud) | cert-manager + Let's Encrypt |
-| Infrastructure as Code | Terraform |
+| Dashboards | Grafana |
+| Alerts | Alertmanager (multi-window burn-rate) |
+| Progressive delivery | Argo Rollouts 1.7.x |
+| Ingress | ingress-nginx |
+| Load testing | k6 0.x (parameterized for any env) |
+| Container runtime | Docker via Colima (M1 native) |
 
 ---
 
-## Documentation
+## Documentation Index
 
-- [ROADMAP.md](./ROADMAP.md) — Engineering plan and status tracking
-- [docs/adr/](./docs/adr/) — Architecture Decision Records
-- [docs/incidents/](./docs/incidents/) — Incident postmortems
-- [docs/runbooks/](./docs/runbooks/) — Operational procedures
+- [ROADMAP.md](./ROADMAP.md) — Per-week task status, Week 7+ follow-ups
+- [docs/adr/](./docs/adr/) — 12 Architecture Decision Records
+- [docs/incidents/](./docs/incidents/) — 5 incident postmortems including
+  failover GameDays and canary auto-rollback
+- [docs/runbooks/](./docs/runbooks/) — Operational procedures (PITR, failover,
+  ArgoCD sync troubleshooting, etc.)
+- [docs/learning/](./docs/learning/) — Sprint capture docs and lessons learned
 
 ---
 
@@ -145,16 +263,23 @@ Requires: Docker (Colima recommended), kind, kubectl, helm. Run `make verify` to
 
 ### Removing an ArgoCD Application managed by an ApplicationSet
 
-When removing a component managed by the platform ApplicationSet, follow this delete order to avoid finalizer deadlocks:
+When removing a component managed by the platform ApplicationSet, follow this
+delete order to avoid finalizer deadlocks:
 
-1. Set the Application's sync policy to manual (or uncheck auto-prune) via the ArgoCD UI
+1. Set the Application's sync policy to manual (or disable auto-prune) via the
+   ArgoCD UI
 2. Manually sync once with prune enabled to clean up all managed resources
-3. Only after the Application shows 0 resources, remove its source directory from Git
+3. Only after the Application shows 0 resources, remove its source directory
+   from Git
 
-If you delete the directory first, the Application can get stuck in `Terminating` state because its finalizer cannot load the source to determine what to prune. See [INC-001](./docs/incidents/001-applicationset-finalizer-deadlock.md) and the corresponding [runbook](./docs/runbooks/argocd-application-stuck-terminating.md) for full details.
+If you delete the directory first, the Application can get stuck in
+`Terminating` state because its finalizer cannot load the source to determine
+what to prune. See [INC-001](./docs/incidents/001-applicationset-finalizer-deadlock.md)
+and the corresponding
+[runbook](./docs/runbooks/argocd-application-stuck-terminating.md).
 
 ---
 
 ## License
 
-MIT
+[MIT](./LICENSE)
