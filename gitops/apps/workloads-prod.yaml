@@ -13,7 +13,9 @@ spec:
 
   generators:
     - list:
-        elements: []
+        elements:
+          - env: prod
+            wave: "3"
 
   template:
     metadata:
@@ -23,6 +25,8 @@ spec:
         app.atlas.io/category: workload
         app.atlas.io/workload: three-tier-app
         app.atlas.io/env: '{{ .env }}'
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{ .wave }}'
     spec:
       project: default
       source:
@@ -39,17 +43,18 @@ spec:
           - ApplyOutOfSyncOnly=true
           - RespectIgnoreDifferences=true
         retry:
-          limit: 5
+          limit: 20
           backoff:
             duration: 5s
             factor: 2
-            maxDuration: 3m
+            maxDuration: 5m
 
       ignoreDifferences:
         - group: apps
           kind: StatefulSet
           jsonPointers:
             - /spec/volumeClaimTemplates
+
         - group: postgresql.cnpg.io
           kind: Cluster
           jsonPointers:
@@ -57,11 +62,24 @@ spec:
             - /spec/bootstrap/initdb/encoding
             - /spec/bootstrap/initdb/localeCType
             - /spec/bootstrap/initdb/localeCollate
+
         - group: postgresql.cnpg.io
           kind: ScheduledBackup
           jsonPointers:
             - /status
+
         - group: postgresql.cnpg.io
           kind: Pooler
           jsonPointers:
             - /status
+
+        - group: argoproj.io
+          kind: Rollout
+          jsonPointers:
+            - /spec/replicas
+
+        - group: ""
+          kind: Service
+          jqPathExpressions:
+            - '.spec.selector."rollouts-pod-template-hash"'
+            - '.metadata.annotations."argo-rollouts.argoproj.io/managed-by-rollouts"'
