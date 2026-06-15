@@ -66,10 +66,3 @@ patches:
       version: v1alpha1
       kind: Rollout
       name: backend
-
-  - path: canary-trigger-failrate-patch.yaml
-    target:
-      group: argoproj.io
-      version: v1alpha1
-      kind: Rollout
-      name: backend
