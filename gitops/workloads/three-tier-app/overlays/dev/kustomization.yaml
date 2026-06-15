@@ -43,10 +43,3 @@ patches:
       version: v1alpha1
       kind: AnalysisTemplate
       name: backend-canary-analysis
-
-  - path: canary-trigger-latency-patch.yaml
-    target:
-      group: argoproj.io
-      version: v1alpha1
-      kind: Rollout
-      name: backend
