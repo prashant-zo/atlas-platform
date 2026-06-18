@@ -8,6 +8,15 @@ local development via kind.
 
 ---
 
+## Demo Video
+
+**[▶ Watch the 4-minute demo on Vimeo →](https://vimeo.com/1202527585)**
+
+Multi-environment GitOps on AWS EKS with automated canary deployments, 
+cross-environment isolation, k6 load testing, and CNCF-pattern teardown.
+
+---
+
 ## What's Here
 
 Atlas runs three environments — dev, staging, prod — side by side on a single
