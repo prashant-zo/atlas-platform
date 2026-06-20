@@ -129,6 +129,10 @@ SLO recording rules emit one series per env, all at 1.0 (healthy).
 
 ### Local (kind, M1 Mac via Colima)
 
+**Detailed walkthrough:** [docs/LOCAL_SETUP.md](./docs/LOCAL_SETUP.md)
+
+Quick version:
+
 ```bash
 # Prereqs: Docker (via Colima), kind, kubectl, helm, kustomize
 make verify
